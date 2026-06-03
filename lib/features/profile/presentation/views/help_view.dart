@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 
+import 'package:ghar360/core/data/models/bug_report_model.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/mixins/theme_mixin.dart';
 import 'package:ghar360/core/routes/app_routes.dart';
@@ -47,6 +48,18 @@ class HelpView extends StatelessWidget with ThemeMixin {
                       title: 'help_email_support_title'.tr,
                       description: 'help_email_support_desc'.tr,
                       onTap: () => _emailSupport(),
+                    ),
+                    _buildQuickAction(
+                      icon: Icons.bug_report_outlined,
+                      title: 'help_report_bug_title'.tr,
+                      description: 'help_report_bug_desc'.tr,
+                      onTap: () => _reportBug(),
+                    ),
+                    _buildQuickAction(
+                      icon: Icons.lightbulb_outline,
+                      title: 'help_request_feature_title'.tr,
+                      description: 'help_request_feature_desc'.tr,
+                      onTap: () => _requestFeature(),
                     ),
                   ],
                 ),
@@ -395,5 +408,13 @@ class HelpView extends StatelessWidget with ThemeMixin {
 
   Future<void> _sendFeedback() async {
     await Get.toNamed(AppRoutes.feedback);
+  }
+
+  void _reportBug() {
+    Get.toNamed(AppRoutes.feedback, arguments: {'initialBugType': BugType.uiBug});
+  }
+
+  void _requestFeature() {
+    Get.toNamed(AppRoutes.feedback, arguments: {'initialBugType': BugType.featureRequest});
   }
 }

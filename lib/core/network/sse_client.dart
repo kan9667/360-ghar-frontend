@@ -30,7 +30,7 @@ class SseClient {
   SseClient({required AuthHeaderProvider authProvider, String? baseUrl})
     : _authProvider = authProvider,
       _baseUrl = _normalizeBaseUrl(
-        baseUrl ?? dotenv.get('API_BASE_URL', fallback: 'http://localhost:8000'),
+        baseUrl ?? dotenv.get('API_BASE_URL', fallback: 'http://localhost:3600'),
       );
 
   /// Strip trailing `/api/v1` so [ApiPaths.normalize] can re-add it.

@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:ghar360/core/controllers/location_controller.dart';
 import 'package:ghar360/core/controllers/page_state_service.dart';
 import 'package:ghar360/core/data/models/page_state_model.dart';
 import 'package:ghar360/core/data/models/property_model.dart';
 import 'package:ghar360/core/data/models/unified_filter_model.dart';
+import 'package:ghar360/core/map/map_controller.dart';
 import 'package:ghar360/core/routes/app_routes.dart';
 import 'package:ghar360/core/utils/app_exceptions.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
@@ -15,7 +15,7 @@ import 'package:ghar360/core/utils/debug_logger.dart';
 import 'package:ghar360/core/utils/error_mapper.dart';
 import 'package:ghar360/core/widgets/common/property_filter_widget.dart';
 import 'package:ghar360/features/swipes/data/swipes_repository.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 
 enum ExploreState { initial, loading, loaded, empty, error, loadingMore }
 
@@ -28,10 +28,14 @@ class ExploreController extends GetxController {
   final LocationController _locationController = Get.find<LocationController>();
   final PageStateService _pageStateService = Get.find<PageStateService>();
 
-  // Map controller
-  final MapController mapController = MapController();
+  // Map controller wrapper (MapLibre). Attached in [onMapCreated] from the view.
+  final GharMapController mapController = GharMapController();
   // Map readiness flag to prevent premature controller calls
   final RxBool isMapReady = false.obs;
+
+  // Tracks programmatic camera moves so [onCameraIdle] can distinguish them
+  // from user gestures (MapLibre's onCameraIdle has no hasGesture flag).
+  bool _programmaticMove = false;
 
   // Reactive state
   final Rx<ExploreState> state = ExploreState.initial.obs;
@@ -140,6 +144,8 @@ class ExploreController extends GetxController {
     _workers.clear();
     mapController.dispose();
     super.onClose();
+    // Note: the underlying MapLibreMapController is owned/disposed by the
+    // MapLibreMap widget; [GharMapController.dispose] only drops our reference.
   }
 
   Worker _trackWorker(Worker worker) {
@@ -184,7 +190,13 @@ class ExploreController extends GetxController {
     }
   }
 
-  // Called by the view when FlutterMap reports ready
+  /// Binds the live MapLibre controller. Called from the view's
+  /// `onMapCreated` callback.
+  void attachMap(MapLibreMapController controller) {
+    mapController.attach(controller);
+  }
+
+  // Called by the view when the MapLibre style has finished loading.
   void onMapReady() {
     if (isMapReady.value) return;
     isMapReady.value = true;
@@ -198,43 +210,36 @@ class ExploreController extends GetxController {
         pageState.selectedLocation!.longitude,
       );
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        try {
-          mapController.move(center, currentZoom.value);
-          DebugLogger.info('🎯 Synced camera on map ready to $center');
-
-          // Update reactive values to match the camera position
-          currentCenter.value = center;
-        } catch (e) {
-          DebugLogger.warning('⚠️ Could not sync camera on map ready: $e');
-          // Fallback to current reactive values
-          try {
-            mapController.move(currentCenter.value, currentZoom.value);
-            DebugLogger.info('🔄 Fallback: Synced camera to current center ${currentCenter.value}');
-          } catch (fallbackError) {
-            DebugLogger.error('❌ Fallback camera move also failed: $fallbackError');
-          }
-        }
+        _moveCameraProgrammatic(center, currentZoom.value);
+        DebugLogger.info('🎯 Synced camera on map ready to $center');
+        // Update reactive values to match the camera position
+        currentCenter.value = center;
       });
     } else {
-      // No location set yet, use current reactive values but ensure they're not default
+      // No location set yet, use current reactive values but ensure they're
+      // not the default placeholder.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        try {
-          // Check if current center is still the default location
-          if (currentCenter.value == _defaultCenter) {
-            DebugLogger.info(
-              '📍 Map ready but still showing default location - waiting for user location',
-            );
-          }
-
-          mapController.move(currentCenter.value, currentZoom.value);
+        if (currentCenter.value == _defaultCenter) {
           DebugLogger.info(
-            '🎯 Synced camera on map ready to ${currentCenter.value} @ ${currentZoom.value}',
+            '📍 Map ready but still showing default location - waiting for user location',
           );
-        } catch (e) {
-          DebugLogger.warning('⚠️ Could not sync camera on map ready: $e');
         }
+        _moveCameraProgrammatic(currentCenter.value, currentZoom.value);
+        DebugLogger.info(
+          '🎯 Synced camera on map ready to ${currentCenter.value} @ ${currentZoom.value}',
+        );
       });
     }
+  }
+
+  // Marks the next camera change as programmatic, then moves the camera.
+  void _moveCameraProgrammatic(LatLng center, double zoom) {
+    if (!mapController.isAttached) return;
+    _programmaticMove = true;
+    mapController.move(center, zoom).catchError((Object e) {
+      DebugLogger.warning('⚠️ Could not move map: $e');
+      _programmaticMove = false;
+    });
   }
 
   void _setupFilterListener() {
@@ -330,8 +335,7 @@ class ExploreController extends GetxController {
     _locationSubscription = _locationController.currentPosition.listen((position) {
       if (position != null) {
         final newCenter = LatLng(position.latitude, position.longitude);
-        final distance = const Distance();
-        if (distance.as(LengthUnit.Meter, currentCenter.value, newCenter) > 1000) {
+        if (distanceMeters(currentCenter.value, newCenter) > 1000) {
           // Only update if >1km difference
           _updateMapCenter(newCenter, 14.0);
         }
@@ -506,53 +510,53 @@ class ExploreController extends GetxController {
   }
 
   void _updateMapCenter(LatLng center, double zoom) {
-    try {
-      // Always update reactive state first
-      currentCenter.value = center;
-      currentZoom.value = zoom;
-      DebugLogger.info('🗺️ Updated reactive map center to $center with zoom $zoom');
+    // Always update reactive state first
+    currentCenter.value = center;
+    currentZoom.value = zoom;
+    DebugLogger.info('🗺️ Updated reactive map center to $center with zoom $zoom');
 
-      // Only move the controller once the map is ready/rendered
-      if (isMapReady.value) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          try {
-            mapController.move(center, zoom);
-            DebugLogger.info('✅ Map controller moved successfully');
-          } catch (e) {
-            DebugLogger.warning('⚠️ Could not move map (post-frame): $e');
-          }
-        });
-      } else {
-        DebugLogger.debug('⏳ Map not ready; deferred camera move');
-      }
-    } catch (e) {
-      DebugLogger.warning('⚠️ Could not move map: $e');
-      // Still update the reactive values even if map move fails
-      currentCenter.value = center;
-      currentZoom.value = zoom;
+    // Only move the controller once the map is ready/rendered
+    if (isMapReady.value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _moveCameraProgrammatic(center, zoom);
+      });
+    } else {
+      DebugLogger.debug('⏳ Map not ready; deferred camera move');
     }
   }
 
-  // Map movement handler with debounce
-  void onMapMove(MapCamera position, bool hasGesture) {
-    if (!hasGesture) {
-      return; // Ignore programmatic moves
-    }
+  // Map camera-idle handler. Wired to MapLibre's `onCameraIdle` from the view,
+  // which fires once the camera settles after any pan/zoom. MapLibre exposes no
+  // `hasGesture` flag, so we approximate it: programmatic moves set
+  // [_programmaticMove] (cleared here), and we additionally gate on the same
+  // 100m / 0.1-zoom threshold the old flutter_map handler used to avoid
+  // re-fetching on negligible drift.
+  void onCameraIdle(LatLng center, double zoom) {
     if (!isMapReady.value) {
       return;
     }
-    // Compute deltas before mutating reactive values
+
+    // Programmatic move (recenter / zoom button / fit-bounds / ready-sync):
+    // sync reactive state but never trigger a viewport re-fetch.
+    if (_programmaticMove) {
+      _programmaticMove = false;
+      currentCenter.value = center;
+      currentZoom.value = zoom;
+      return;
+    }
+
+    // Compute deltas before mutating reactive values.
     final prevCenter = currentCenter.value;
     final prevZoom = currentZoom.value;
-    final distanceMeters = const Distance().as(LengthUnit.Meter, prevCenter, position.center);
-    final zoomDelta = (position.zoom - prevZoom).abs();
+    final movedMeters = distanceMeters(prevCenter, center);
+    final zoomDelta = (zoom - prevZoom).abs();
 
-    currentCenter.value = position.center;
-    currentZoom.value = position.zoom;
+    currentCenter.value = center;
+    currentZoom.value = zoom;
 
-    // Debounce the map move to avoid too many API calls
-    // Only proceed if movement is significant to reduce churn
-    if (zoomDelta > 0.1 || distanceMeters > 100) {
+    // Only proceed if the gesture moved the viewport meaningfully, matching the
+    // previous flutter_map threshold to reduce API churn.
+    if (zoomDelta > 0.1 || movedMeters > 100) {
       _mapMoveDebouncer?.cancel();
       _mapMoveDebouncer = Timer(const Duration(milliseconds: 600), () {
         _onMapMoveCompleted();
@@ -699,13 +703,27 @@ class ExploreController extends GetxController {
 
   // Map controls
   void zoomIn() {
-    final newZoom = (currentZoom.value + 1).clamp(3.0, 18.0);
-    _updateMapCenter(currentCenter.value, newZoom);
+    final newZoom = (currentZoom.value + 1).clamp(kDefaultMinZoom, kDefaultMaxZoom);
+    currentZoom.value = newZoom;
+    if (isMapReady.value) {
+      _programmaticMove = true;
+      mapController.animateZoom(newZoom).catchError((Object e) {
+        DebugLogger.warning('⚠️ zoomIn failed: $e');
+        _programmaticMove = false;
+      });
+    }
   }
 
   void zoomOut() {
-    final newZoom = (currentZoom.value - 1).clamp(3.0, 18.0);
-    _updateMapCenter(currentCenter.value, newZoom);
+    final newZoom = (currentZoom.value - 1).clamp(kDefaultMinZoom, kDefaultMaxZoom);
+    currentZoom.value = newZoom;
+    if (isMapReady.value) {
+      _programmaticMove = true;
+      mapController.animateZoom(newZoom).catchError((Object e) {
+        DebugLogger.warning('⚠️ zoomOut failed: $e');
+        _programmaticMove = false;
+      });
+    }
   }
 
   void recenterToCurrentLocation() {
@@ -742,21 +760,14 @@ class ExploreController extends GetxController {
         return;
       }
 
-      final minLat = lats.reduce((a, b) => a < b ? a : b);
-      final maxLat = lats.reduce((a, b) => a > b ? a : b);
-      final minLng = lngs.reduce((a, b) => a < b ? a : b);
-      final maxLng = lngs.reduce((a, b) => a > b ? a : b);
-
-      final bounds = LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng));
+      final points = <LatLng>[for (var i = 0; i < lats.length; i++) LatLng(lats[i], lngs[i])];
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        try {
-          mapController.fitCamera(
-            CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)),
-          );
-        } catch (e) {
+        _programmaticMove = true;
+        mapController.fitBounds(points).catchError((Object e) {
           DebugLogger.warning('⚠️ fitBounds failed post-frame: $e');
-        }
+          _programmaticMove = false;
+        });
       });
     } catch (e) {
       DebugLogger.warning('⚠️ Could not fit bounds: $e');

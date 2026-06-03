@@ -629,6 +629,10 @@ class AppTranslations extends Translations {
       'help_request_callback_desc': 'Leave your number and we will reach out shortly',
       'help_email_support_title': 'Email Support',
       'help_email_support_desc': 'support@360ghar.com (24-hour response)',
+      'help_report_bug_title': 'Report a Bug',
+      'help_report_bug_desc': 'Something not working? Let us know',
+      'help_request_feature_title': 'Request a Feature',
+      'help_request_feature_desc': 'Share your ideas to improve the app',
       'help_faq_title': 'Frequently Asked Questions',
       'help_faq_q1': 'How do I find properties that match my needs?',
       'help_faq_a1':
@@ -749,6 +753,12 @@ class AppTranslations extends Translations {
       'delete': 'Delete',
       'account_deletion_snackbar_title': 'Account Deletion',
       'account_deletion_snackbar_message': 'Account deletion process would be initiated here',
+
+      // Profile support menu
+      'report_a_bug': 'Report a Bug',
+      'report_a_bug_subtitle': 'Tell us what went wrong',
+      'request_a_feature': 'Request a Feature',
+      'request_a_feature_subtitle': 'Suggest something new',
 
       // Tools and Calculators
       'tools_calculators': 'Tools & Calculators',
@@ -1661,6 +1671,10 @@ class AppTranslations extends Translations {
       'help_request_callback_desc': 'अपना नंबर छोड़ें, हम जल्द संपर्क करेंगे',
       'help_email_support_title': 'ईमेल सपोर्ट',
       'help_email_support_desc': 'support@360ghar.com (24 घंटे में जवाब)',
+      'help_report_bug_title': 'बग रिपोर्ट करें',
+      'help_report_bug_desc': 'कुछ काम नहीं कर रहा? हमें बताएं',
+      'help_request_feature_title': 'नई सुविधा का अनुरोध करें',
+      'help_request_feature_desc': 'ऐप को बेहतर बनाने के लिए अपने विचार साझा करें',
       'help_faq_title': 'अक्सर पूछे जाने वाले सवाल',
       'help_faq_q1': 'मेरी जरूरत के अनुसार प्रॉपर्टी कैसे ढूँढूँ?',
       'help_faq_a1':
@@ -1783,6 +1797,12 @@ class AppTranslations extends Translations {
       'delete': 'हटाएं',
       'account_deletion_snackbar_title': 'खाता हटाना',
       'account_deletion_snackbar_message': 'खाता हटाने की प्रक्रिया यहां शुरू की जाएगी',
+
+      // Profile support menu
+      'report_a_bug': 'बग रिपोर्ट करें',
+      'report_a_bug_subtitle': 'हमें बताएं कि क्या गलत हुआ',
+      'request_a_feature': 'नई सुविधा का अनुरोध करें',
+      'request_a_feature_subtitle': 'कुछ नया सुझाएं',
 
       // Tools and Calculators
       'tools_calculators': 'टूल्स और कैलकुलेटर',

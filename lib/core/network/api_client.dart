@@ -66,7 +66,7 @@ class ApiClient {
     RequestDispatcher? requestDispatcher,
     getx.GetConnect? client,
   }) : _baseUrl = _normalizeBaseUrl(
-         baseUrl ?? dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000',
+         baseUrl ?? dotenv.env['API_BASE_URL'] ?? 'http://localhost:3600',
        ),
        _authProvider = authProvider ?? AuthHeaderProvider(),
        _etagCache = etagCache ?? ETagCache(),
@@ -510,7 +510,7 @@ class ApiClient {
   static String _normalizeBaseUrl(String baseUrl) {
     var normalized = baseUrl.trim();
     if (normalized.isEmpty) {
-      return 'http://localhost:8000';
+      return 'http://localhost:3600';
     }
 
     if (normalized.endsWith('/')) {

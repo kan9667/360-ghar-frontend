@@ -339,7 +339,7 @@ The app uses Supabase as the primary backend service:
 ```bash
 # .env.development and .env.production
 # API Configuration
-API_BASE_URL=http://localhost:8000
+API_BASE_URL=http://localhost:3600
 API_TIMEOUT_SECONDS=15  # Optional: override HTTP client timeout
 
 # Supabase Configuration

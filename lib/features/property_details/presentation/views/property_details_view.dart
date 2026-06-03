@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:ghar360/core/data/models/property_model.dart';
 import 'package:ghar360/core/data/models/visit_model.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
+import 'package:ghar360/core/map/mini_map_view.dart';
 import 'package:ghar360/core/utils/app_spacing.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
 import 'package:ghar360/core/utils/share_utils.dart';
@@ -19,7 +19,6 @@ import 'package:ghar360/features/property_details/presentation/widgets/property_
 import 'package:ghar360/features/property_details/presentation/widgets/property_media_hub.dart';
 import 'package:ghar360/features/visits/presentation/controllers/visits_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PropertyDetailsView extends GetView<PropertyDetailsController> {
@@ -451,31 +450,7 @@ class _PropertyContentViewState extends State<_PropertyContentView> {
           border: Border.all(color: AppDesign.border),
         ),
         clipBehavior: Clip.antiAlias,
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: LatLng(lat, lng),
-            initialZoom: 15,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
-            ),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.ghar360.app',
-            ),
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: LatLng(lat, lng),
-                  width: 40,
-                  height: 40,
-                  child: const Icon(Icons.location_on, size: 36, color: AppDesign.primaryYellow),
-                ),
-              ],
-            ),
-          ],
-        ),
+        child: MiniMapView(latitude: lat, longitude: lng),
       ),
       const SizedBox(height: 10),
       Align(

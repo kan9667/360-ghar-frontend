@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:ghar360/core/data/models/property_model.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
+import 'package:ghar360/core/map/mini_map_view.dart';
 import 'package:ghar360/core/routes/app_routes.dart';
 import 'package:ghar360/core/utils/app_spacing.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
 import 'package:ghar360/features/discover/presentation/widgets/embedded_swipe_360_tour.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// The scrollable details section below the hero image in a swipe card.
@@ -345,31 +344,7 @@ class SwipeCardDetailsSection extends StatelessWidget {
           border: Border.all(color: AppDesign.border),
         ),
         clipBehavior: Clip.antiAlias,
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: LatLng(property.latitude!, property.longitude!),
-            initialZoom: 15,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
-            ),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.ghar360.app',
-            ),
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: LatLng(property.latitude!, property.longitude!),
-                  width: 40,
-                  height: 40,
-                  child: const Icon(Icons.location_on, size: 36, color: AppDesign.primaryYellow),
-                ),
-              ],
-            ),
-          ],
-        ),
+        child: MiniMapView(latitude: property.latitude!, longitude: property.longitude!),
       ),
       const SizedBox(height: 8),
       Align(

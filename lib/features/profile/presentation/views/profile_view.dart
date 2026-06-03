@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:ghar360/core/controllers/auth_controller.dart';
+import 'package:ghar360/core/data/models/bug_report_model.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/mixins/theme_mixin.dart';
 import 'package:ghar360/core/routes/app_routes.dart';
@@ -99,6 +100,30 @@ class ProfileView extends GetView<AuthController> with ThemeMixin {
                                   subtitle: 'get_help_contact_support'.tr,
                                   qaKey: 'qa.profile.menu.help',
                                   onTap: () => Get.toNamed(AppRoutes.help),
+                                  showDivider: true,
+                                ),
+                                _buildMenuItem(
+                                  context: context,
+                                  icon: Icons.bug_report_outlined,
+                                  title: 'report_a_bug'.tr,
+                                  subtitle: 'report_a_bug_subtitle'.tr,
+                                  qaKey: 'qa.profile.menu.report_bug',
+                                  onTap: () => Get.toNamed(
+                                    AppRoutes.feedback,
+                                    arguments: {'initialBugType': BugType.uiBug},
+                                  ),
+                                  showDivider: true,
+                                ),
+                                _buildMenuItem(
+                                  context: context,
+                                  icon: Icons.lightbulb_outline,
+                                  title: 'request_a_feature'.tr,
+                                  subtitle: 'request_a_feature_subtitle'.tr,
+                                  qaKey: 'qa.profile.menu.request_feature',
+                                  onTap: () => Get.toNamed(
+                                    AppRoutes.feedback,
+                                    arguments: {'initialBugType': BugType.featureRequest},
+                                  ),
                                   showDivider: true,
                                 ),
                                 _buildMenuItem(

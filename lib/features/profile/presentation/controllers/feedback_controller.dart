@@ -13,6 +13,10 @@ class FeedbackController extends GetxController {
 
   final SupportRepository _supportRepository;
 
+  /// Tag added to every submission so the backend can attribute the report to
+  /// this app.
+  static const String _appTag = 'ghar360';
+
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -24,6 +28,15 @@ class FeedbackController extends GetxController {
   final Rx<BugType> selectedBugType = BugType.uiBug.obs;
   final Rx<BugSeverity> selectedSeverity = BugSeverity.medium.obs;
   final RxBool isSubmitting = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final arguments = Get.arguments;
+    if (arguments is Map && arguments['initialBugType'] is BugType) {
+      selectedBugType.value = arguments['initialBugType'] as BugType;
+    }
+  }
 
   void setBugType(BugType? type) {
     if (type != null) {
@@ -50,7 +63,9 @@ class FeedbackController extends GetxController {
     try {
       final packageInfo = await _safePackageInfo();
       final deviceInfo = _buildDeviceInfo(packageInfo);
-      final tags = _parseTags(tagsController.text);
+      // Always identify the app by including the 'ghar360' tag, merged with
+      // any user-entered tags (de-duplicated, app tag first).
+      final tags = <String>{_appTag, ..._parseTags(tagsController.text)}.toList(growable: false);
 
       final request = BugReportRequest(
         source: 'mobile',
@@ -63,7 +78,7 @@ class FeedbackController extends GetxController {
         actualBehavior: _optionalValue(actualController.text),
         deviceInfo: deviceInfo,
         appVersion: _formatAppVersion(packageInfo),
-        tags: tags.isEmpty ? null : tags,
+        tags: tags,
       );
 
       final response = await _supportRepository.submitBugReport(request);

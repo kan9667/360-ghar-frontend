@@ -1,23 +1,19 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+
 import 'package:get/get.dart';
+
 import 'package:ghar360/core/controllers/page_state_service.dart';
 import 'package:ghar360/core/data/models/page_state_model.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/design/app_design_tokens.dart';
 import 'package:ghar360/core/utils/app_spacing.dart';
-import 'package:ghar360/core/utils/debug_logger.dart';
 import 'package:ghar360/core/widgets/common/error_states.dart';
 import 'package:ghar360/core/widgets/common/loading_states.dart';
 import 'package:ghar360/core/widgets/common/property_filter_widget.dart';
 import 'package:ghar360/core/widgets/common/unified_top_bar.dart';
 import 'package:ghar360/features/explore/presentation/controllers/explore_controller.dart';
+import 'package:ghar360/features/explore/presentation/widgets/explore_map.dart';
 import 'package:ghar360/features/explore/presentation/widgets/property_horizontal_list.dart';
-import 'package:ghar360/features/explore/presentation/widgets/property_marker_chip.dart';
-import 'package:latlong2/latlong.dart';
 
 class ExploreView extends GetView<ExploreController> {
   const ExploreView({super.key});
@@ -63,7 +59,7 @@ class ExploreView extends GetView<ExploreController> {
                       final hasLocation = pageStateService.exploreState.value.hasLocation;
                       if (hasLocation) {
                         key = const ValueKey('map');
-                        child = _buildMapInterface(context, pageStateService);
+                        child = _buildMapInterface(context);
                       } else {
                         key = const ValueKey('loading');
                         child = _buildLoadingState(context);
@@ -80,13 +76,13 @@ class ExploreView extends GetView<ExploreController> {
                     case ExploreState.loaded:
                     case ExploreState.loadingMore:
                       key = const ValueKey('map');
-                      child = _buildMapInterface(context, pageStateService);
+                      child = _buildMapInterface(context);
 
                     default:
                       final hasLocation = pageStateService.exploreState.value.hasLocation;
                       if (hasLocation) {
                         key = const ValueKey('map');
-                        child = _buildMapInterface(context, pageStateService);
+                        child = _buildMapInterface(context);
                       } else {
                         key = const ValueKey('loading');
                         child = _buildLoadingState(context);
@@ -151,130 +147,15 @@ class ExploreView extends GetView<ExploreController> {
     );
   }
 
-  Widget _buildMapInterface(BuildContext context, PageStateService pageStateService) {
+  Widget _buildMapInterface(BuildContext context) {
     return Stack(
       children: [
-        // Main map
+        // Main map (MapLibre + OpenFreeMap Liberty vector tiles)
         Positioned.fill(
-          child: Builder(
-            builder: (_) {
-              try {
-                return Semantics(
-                  label: 'qa.explore.map',
-                  identifier: 'qa.explore.map',
-                  child: FlutterMap(
-                    key: const ValueKey('qa.explore.map'),
-                    mapController: controller.mapController,
-                    options: MapOptions(
-                      initialCenter: controller.currentCenter.value,
-                      initialZoom: controller.currentZoom.value,
-                      minZoom: 3.0,
-                      maxZoom: 18.0,
-                      onPositionChanged: (position, hasGesture) {
-                        if (hasGesture && controller.isMapReady.value) {
-                          final zoomChanged =
-                              (position.zoom - controller.currentZoom.value).abs() > 0.1;
-                          final distance = _calculateDistance(
-                            controller.currentCenter.value,
-                            position.center,
-                          );
-                          final centerChanged = distance > 100;
-                          if (zoomChanged || centerChanged) {
-                            controller.onMapMove(position, hasGesture);
-                          }
-                        }
-                      },
-                      onMapReady: () {
-                        DebugLogger.success('🗺️ Map is ready!');
-                        controller.onMapReady();
-                      },
-                      interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.ghar360.app',
-                        maxZoom: 18,
-                      ),
-                      const RichAttributionWidget(
-                        attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
-                      ),
-                      // Search radius circle (reactive)
-                      Obx(() {
-                        if (!pageStateService.getCurrentPageState().hasLocation) {
-                          return const SizedBox.shrink();
-                        }
-                        return CircleLayer(
-                          circles: [
-                            CircleMarker(
-                              point: controller.currentCenter.value,
-                              radius: controller.currentRadius.value * 1000,
-                              color: AppDesignTokens.brandGoldSubtle.withValues(alpha: 0.35),
-                              borderColor: AppDesignTokens.brandGold.withValues(alpha: 0.4),
-                              borderStrokeWidth: 1.5,
-                            ),
-                          ],
-                        );
-                      }),
-                      // Property markers with clustering (reactive)
-                      Obx(() {
-                        final _ = controller.markersRevision.value;
-                        final markers = controller.propertyMarkers;
-                        if (markers.isEmpty) return const SizedBox.shrink();
-
-                        // Convert our lightweight marker models to flutter_map Markers
-                        final mapMarkers = markers.map((marker) {
-                          final label = marker.label;
-                          final estWidth = _estimateChipWidth(label);
-                          return Marker(
-                            point: marker.position,
-                            width: estWidth + (marker.isSelected ? 16 : 0),
-                            height: marker.isSelected ? 56 : 40,
-                            child: PropertyMarkerChip(
-                              property: marker.property,
-                              isSelected: marker.isSelected,
-                              label: label,
-                              onTap: () {
-                                DebugLogger.info(
-                                  'Property marker tapped: ${marker.property.title}',
-                                );
-                                controller.selectProperty(marker.property);
-                              },
-                            ),
-                          );
-                        }).toList();
-
-                        return MarkerClusterLayerWidget(
-                          options: MarkerClusterLayerOptions(
-                            markers: mapMarkers,
-                            maxClusterRadius: 60,
-                            size: const Size(44, 44),
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.all(60),
-                            maxZoom: 18,
-                            showPolygon: false,
-                            spiderfyCircleRadius: 60,
-                            spiderfySpiralDistanceMultiplier: 1,
-                            circleSpiralSwitchover: 12,
-                            zoomToBoundsOnClick: true,
-                            builder: (context, clusterMarkers) {
-                              final count = clusterMarkers.length;
-                              return _ClusterChip(count: count);
-                            },
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                );
-              } catch (e) {
-                DebugLogger.error('❌ Map rendering failed: $e');
-                return ErrorStates.networkError(
-                  onRetry: controller.retryLoading,
-                  customMessage: 'map_render_failed_message'.tr,
-                );
-              }
-            },
+          child: Semantics(
+            label: 'qa.explore.map',
+            identifier: 'qa.explore.map',
+            child: ExploreMap(controller: controller),
           ),
         ),
         // Map controls
@@ -541,56 +422,4 @@ class ExploreView extends GetView<ExploreController> {
   }
 
   // Bottom sheet removed in favor of persistent horizontal list
-
-  double _calculateDistance(LatLng point1, LatLng point2) {
-    const double earthRadius = 6371000; // Earth's radius in meters
-    final double lat1Rad = point1.latitude * (math.pi / 180);
-    final double lat2Rad = point2.latitude * (math.pi / 180);
-    final double deltaLat = (point2.latitude - point1.latitude) * (math.pi / 180);
-    final double deltaLng = (point2.longitude - point1.longitude) * (math.pi / 180);
-    final double a =
-        (math.sin(deltaLat / 2) * math.sin(deltaLat / 2)) +
-        math.cos(lat1Rad) * math.cos(lat2Rad) * (math.sin(deltaLng / 2) * math.sin(deltaLng / 2));
-    final double c = 2 * math.asin(math.sqrt(a));
-    return earthRadius * c;
-  }
-
-  double _estimateChipWidth(String label) {
-    // Rough estimate to size Marker width to avoid clipping dynamic chip
-    final base = 30; // padding and borders
-    final perChar = 7; // approx average glyph width
-    final est = base + (label.length * perChar);
-    return est.clamp(44, 160).toDouble();
-  }
-}
-
-class _ClusterChip extends StatelessWidget {
-  final int count;
-  const _ClusterChip({required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: AppDesignTokens.brandGold,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: isDark ? AppDesignTokens.darkBorder : AppDesignTokens.neutral300,
-          width: 1,
-        ),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '$count',
-        style: TextStyle(
-          color: isDark ? AppDesignTokens.darkTextPrimary : AppDesignTokens.neutral900,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
 }
