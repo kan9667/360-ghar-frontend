@@ -8,9 +8,7 @@ part of 'page_state_model.dart';
 
 PageStateSnapshot _$PageStateSnapshotFromJson(Map<String, dynamic> json) => PageStateSnapshot(
   pageType: json['pageType'] as String,
-  selectedLocation: json['selectedLocation'] == null
-      ? null
-      : LocationData.fromJson(json['selectedLocation'] as Map<String, dynamic>),
+  selectedLocation: LocationData.tryFromJson(json['selectedLocation'] as Map<String, dynamic>?),
   locationSource: json['locationSource'] as String?,
   filters: UnifiedFilterModel.fromJson(json['filters'] as Map<String, dynamic>),
   searchQuery: json['searchQuery'] as String?,
@@ -30,9 +28,7 @@ Map<String, dynamic> _$PageStateSnapshotToJson(PageStateSnapshot instance) => <S
 
 PageStateModel _$PageStateModelFromJson(Map<String, dynamic> json) => PageStateModel(
   pageType: $enumDecode(_$PageTypeEnumMap, json['pageType']),
-  selectedLocation: json['selectedLocation'] == null
-      ? null
-      : LocationData.fromJson(json['selectedLocation'] as Map<String, dynamic>),
+  selectedLocation: LocationData.tryFromJson(json['selectedLocation'] as Map<String, dynamic>?),
   locationSource: json['locationSource'] as String?,
   filters: UnifiedFilterModel.fromJson(json['filters'] as Map<String, dynamic>),
   searchQuery: json['searchQuery'] as String?,

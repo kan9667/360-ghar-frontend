@@ -33,6 +33,11 @@ class AuthController extends GetxController {
   final RxBool isAuthResolving = false.obs;
   final Rxn<RouteSettings> redirectRoute = Rxn<RouteSettings>();
 
+  /// Set when an OTP login completes for an account without a password.
+  /// Forces a mandatory set-password screen before entering the app
+  /// (closes requirement 6). Cleared once the password is set.
+  bool _requiresPasswordSetup = false;
+
   StreamSubscription<User?>? _authSubscription;
   Timer? _debounceTimer;
   String? _lastProcessedAuthFingerprint;
@@ -313,10 +318,17 @@ class AuthController extends GetxController {
       );
       unawaited(_registerNotificationTokenIfAvailable(userProfile));
 
-      // Determine the final auth status based on profile completeness
-      final newStatus = userProfile.isProfileComplete
-          ? AuthStatus.authenticated
-          : AuthStatus.requiresProfileCompletion;
+      // Determine the final auth status based on profile completeness.
+      // A pending password-setup requirement (OTP login without a password)
+      // takes precedence and gates entry into the app until resolved.
+      final AuthStatus newStatus;
+      if (_requiresPasswordSetup) {
+        newStatus = AuthStatus.requiresPasswordSetup;
+      } else if (userProfile.isProfileComplete) {
+        newStatus = AuthStatus.authenticated;
+      } else {
+        newStatus = AuthStatus.requiresProfileCompletion;
+      }
 
       // Only update if status actually changed to prevent unnecessary rebuilds
       if (authStatus.value != newStatus) {
@@ -326,7 +338,7 @@ class AuthController extends GetxController {
         if (newStatus == AuthStatus.authenticated) {
           DebugLogger.auth('User is fully authenticated and profile is complete.');
         } else {
-          DebugLogger.auth('User authenticated, but profile completion is required.');
+          DebugLogger.auth('User authenticated, but $newStatus is required.');
           // Force a UI rebuild to ensure navigation happens
           Future.delayed(const Duration(milliseconds: 50), () {
             authStatus.refresh();
@@ -506,6 +518,43 @@ class AuthController extends GetxController {
     } catch (e) {
       DebugLogger.error('Failed to update user preferences', e);
       return false;
+    }
+  }
+
+  /// Marks that the just-authenticated OTP session has no password and must
+  /// set one before entering the app. Call this BEFORE verifying the OTP so
+  /// the [_loadUserProfile] status decision routes to the set-password screen.
+  void markRequiresPasswordSetup() {
+    _requiresPasswordSetup = true;
+  }
+
+  /// Clears a pending set-password requirement. Call this if the OTP verify
+  /// that would have established the session fails, so a failed verify can't
+  /// leave a stale set-password gate.
+  void clearRequiresPasswordSetup() {
+    _requiresPasswordSetup = false;
+  }
+
+  bool get requiresPasswordSetup => _requiresPasswordSetup;
+
+  /// Completes the mandatory set-password step: sets the Supabase password,
+  /// clears the pending flag, and re-evaluates the post-auth status so the
+  /// user proceeds into profile completion / home.
+  Future<bool> completePasswordSetup(String newPassword) async {
+    try {
+      isLoading.value = true;
+      await _authRepository.updateUserPassword(newPassword);
+      _requiresPasswordSetup = false;
+      _setAuthResolving(true);
+      await _loadUserProfile();
+      return true;
+    } catch (e, st) {
+      DebugLogger.error('Failed to set password after OTP', e, st);
+      ErrorHandler.handleAuthError(e);
+      return false;
+    } finally {
+      _setAuthResolving(false);
+      isLoading.value = false;
     }
   }
 

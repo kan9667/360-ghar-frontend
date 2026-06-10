@@ -18,6 +18,7 @@ const _unset = _Unset();
 @JsonSerializable(explicitToJson: true)
 class PageStateSnapshot {
   final String pageType;
+  @JsonKey(fromJson: LocationData.tryFromJson)
   final LocationData? selectedLocation;
   final String? locationSource;
   final UnifiedFilterModel filters;
@@ -47,6 +48,7 @@ class PageStateModel {
   final PageType pageType;
 
   // Location state
+  @JsonKey(fromJson: LocationData.tryFromJson)
   final LocationData? selectedLocation;
   final String? locationSource; // 'gps', 'ip', 'manual'
 

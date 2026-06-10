@@ -9,7 +9,7 @@ part of 'property_image_model.dart';
 PropertyImageModel _$PropertyImageModelFromJson(Map<String, dynamic> json) => PropertyImageModel(
   id: (json['id'] as num).toInt(),
   propertyId: (json['property_id'] as num).toInt(),
-  imageUrl: json['image_url'] as String? ?? 'https://via.placeholder.com/400x300?text=No+Image',
+  imageUrl: json['image_url'] as String? ?? '',
   caption: json['caption'] as String?,
   displayOrder: (json['display_order'] as num?)?.toInt() ?? 0,
   isMainImage: json['is_main_image'] as bool? ?? false,

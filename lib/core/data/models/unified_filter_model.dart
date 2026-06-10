@@ -419,11 +419,25 @@ class LocationData {
   const LocationData({required this.name, required this.latitude, required this.longitude});
 
   factory LocationData.fromJson(Map<String, dynamic> json) {
-    return LocationData(
-      name: json['name'] ?? '',
-      latitude: json['latitude']?.toDouble() ?? 0.0,
-      longitude: json['longitude']?.toDouble() ?? 0.0,
-    );
+    final latitude = (json['latitude'] as num?)?.toDouble();
+    final longitude = (json['longitude'] as num?)?.toDouble();
+    if (latitude == null || longitude == null) {
+      // Defaulting to 0,0 ("Null Island") would silently break radius search;
+      // treat coordinate-less data as invalid instead.
+      throw FormatException('LocationData requires latitude and longitude: $json');
+    }
+    return LocationData(name: json['name'] ?? '', latitude: latitude, longitude: longitude);
+  }
+
+  /// Lenient variant for restoring persisted state: returns null (no location
+  /// set) when coordinates are missing instead of throwing.
+  static LocationData? tryFromJson(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    try {
+      return LocationData.fromJson(json);
+    } on FormatException {
+      return null;
+    }
   }
 
   Map<String, dynamic> toJson() {

@@ -12,11 +12,13 @@ import 'package:ghar360/features/auth/presentation/bindings/auth_binding.dart';
 import 'package:ghar360/features/auth/presentation/bindings/forgot_password_binding.dart';
 import 'package:ghar360/features/auth/presentation/bindings/phone_entry_binding.dart';
 import 'package:ghar360/features/auth/presentation/bindings/profile_completion_binding.dart';
+import 'package:ghar360/features/auth/presentation/bindings/set_password_binding.dart';
 import 'package:ghar360/features/auth/presentation/bindings/signup_binding.dart';
 import 'package:ghar360/features/auth/presentation/views/forgot_password_view.dart';
 import 'package:ghar360/features/auth/presentation/views/login_view.dart';
 import 'package:ghar360/features/auth/presentation/views/phone_entry_view.dart';
 import 'package:ghar360/features/auth/presentation/views/profile_completion_view.dart';
+import 'package:ghar360/features/auth/presentation/views/set_password_view.dart';
 import 'package:ghar360/features/auth/presentation/views/signup_view.dart';
 import 'package:ghar360/features/dashboard/presentation/bindings/dashboard_binding.dart';
 import 'package:ghar360/features/dashboard/presentation/views/dashboard_view.dart';
@@ -107,6 +109,14 @@ class AppPages {
       page: () => const ForgotPasswordView(),
       binding: ForgotPasswordBinding(),
       middlewares: [GuestMiddleware()],
+      transition: Transition.rightToLeft,
+      transitionDuration: _defaultTransitionDuration,
+      curve: _defaultCurve,
+    ),
+    GetPage(
+      name: AppRoutes.setPassword,
+      page: () => const SetPasswordView(),
+      binding: SetPasswordBinding(),
       transition: Transition.rightToLeft,
       transitionDuration: _defaultTransitionDuration,
       curve: _defaultCurve,

@@ -5,6 +5,9 @@ import 'package:get/get.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/mixins/theme_mixin.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
+import 'package:ghar360/core/utils/debug_logger.dart';
+import 'package:ghar360/core/utils/error_handler.dart';
+import 'package:ghar360/features/auth/data/auth_repository.dart';
 import 'package:ghar360/features/profile/presentation/views/policy_page_view.dart';
 
 class PrivacyView extends StatelessWidget with ThemeMixin {
@@ -190,7 +193,174 @@ class PrivacyView extends StatelessWidget with ThemeMixin {
   }
 
   void _changePassword() {
-    AppToast.info('change_password_snackbar_title'.tr, 'change_password_snackbar_message'.tr);
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    final currentVisible = false.obs;
+    final newVisible = false.obs;
+    final confirmVisible = false.obs;
+    final isLoading = false.obs;
+    final errorMessage = ''.obs;
+    final formKey = GlobalKey<FormState>();
+
+    Get.dialog<void>(
+      Obx(
+        () => AlertDialog(
+          backgroundColor: AppDesign.surface,
+          title: Text('change_password'.tr),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: MediaQuery.of(Get.context!).size.width - 80,
+              child: Form(
+                key: formKey,
+                child: AutofillGroup(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Obx(
+                        () => TextFormField(
+                          controller: currentPasswordController,
+                          obscureText: !currentVisible.value,
+                          autofillHints: const [AutofillHints.password],
+                          decoration: InputDecoration(
+                            labelText: 'current_password'.tr,
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () => currentVisible.value = !currentVisible.value,
+                              icon: Icon(
+                                currentVisible.value ? Icons.visibility_off : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'password_required'.tr;
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Obx(
+                        () => TextFormField(
+                          controller: newPasswordController,
+                          obscureText: !newVisible.value,
+                          autofillHints: const [AutofillHints.newPassword],
+                          decoration: InputDecoration(
+                            labelText: 'new_password'.tr,
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () => newVisible.value = !newVisible.value,
+                              icon: Icon(
+                                newVisible.value ? Icons.visibility_off : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'password_required'.tr;
+                            }
+                            if (value.length < 8) {
+                              return 'password_min_length_8'.tr;
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Obx(
+                        () => TextFormField(
+                          controller: confirmPasswordController,
+                          obscureText: !confirmVisible.value,
+                          autofillHints: const [AutofillHints.newPassword],
+                          decoration: InputDecoration(
+                            labelText: 'confirm_password'.tr,
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () => confirmVisible.value = !confirmVisible.value,
+                              icon: Icon(
+                                confirmVisible.value ? Icons.visibility_off : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'confirm_password_required'.tr;
+                            }
+                            if (value != newPasswordController.text) {
+                              return 'passwords_dont_match'.tr;
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      Obx(() {
+                        final error = errorMessage.value;
+                        if (error.isEmpty) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Text(
+                            error,
+                            style: const TextStyle(color: AppDesign.errorRed, fontSize: 13),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading.value ? null : () => Get.back(),
+              child: Text('cancel'.tr, style: TextStyle(color: AppDesign.textSecondary)),
+            ),
+            TextButton(
+              onPressed: isLoading.value
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+
+                      isLoading.value = true;
+                      errorMessage.value = '';
+
+                      try {
+                        final authRepository = Get.find<AuthRepository>();
+                        await authRepository.updateUserPassword(newPasswordController.text);
+                        Get.back();
+                        AppToast.success('success'.tr, 'password_updated_successfully'.tr);
+                        DebugLogger.success('Password changed from profile');
+                      } catch (e) {
+                        errorMessage.value = 'failed_to_update_password'.tr;
+                        ErrorHandler.handleAuthError(e);
+                        DebugLogger.error('Failed to change password from profile', e);
+                      } finally {
+                        isLoading.value = false;
+                      }
+                    },
+              child: isLoading.value
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      'update_password'.tr,
+                      style: const TextStyle(
+                        color: AppDesign.primaryYellow,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) {
+      currentPasswordController.dispose();
+      newPasswordController.dispose();
+      confirmPasswordController.dispose();
+    });
   }
 
   void _showDeleteAccountDialog() {

@@ -583,16 +583,10 @@ class PropertyModel {
     if (mainImageUrl?.isNotEmpty == true) return mainImageUrl!;
     final primary = _sortedImages.firstWhere(
       (img) => img.isPrimary && img.imageUrl.isNotEmpty,
-      orElse: () => _sortedImages.isNotEmpty
-          ? _sortedImages.first
-          : PropertyImageModel(
-              id: -1,
-              propertyId: id,
-              imageUrl: 'https://via.placeholder.com/400x300?text=No+Image',
-            ),
+      orElse: () => _sortedImages.isNotEmpty ? _sortedImages.first : PropertyImageModel.empty(),
     );
     if (primary.isValid) return primary.imageUrl;
-    return 'https://via.placeholder.com/400x300?text=No+Image';
+    return '';
   }
 
   // Also make the imageUrls getter safer

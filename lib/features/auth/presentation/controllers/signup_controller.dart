@@ -1,7 +1,5 @@
 // lib/features/auth/presentation/controllers/signup_controller.dart
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ghar360/core/firebase/analytics_service.dart';
@@ -9,22 +7,29 @@ import 'package:ghar360/core/routes/app_routes.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
 import 'package:ghar360/core/utils/debug_logger.dart';
 import 'package:ghar360/core/utils/error_handler.dart';
-import 'package:ghar360/core/utils/formatters.dart';
+import 'package:ghar360/features/auth/data/auth_method.dart';
 import 'package:ghar360/features/auth/data/auth_repository.dart';
+import 'package:ghar360/features/auth/data/identifier_utils.dart';
+import 'package:ghar360/features/auth/data/models/identifier_status.dart';
+import 'package:ghar360/features/auth/presentation/controllers/otp_resend_timer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SignUpController extends GetxController {
+/// Signup for new users (identifier-status `exists == false`).
+///
+/// Step 0: personal info (name/email-or-phone/dob); Step 1: set password
+/// (required for email/phone signup); Step 2: OTP verification.
+class SignUpController extends GetxController with OtpResendTimer {
   final AuthRepository _authRepository = Get.find();
-  final formKey = GlobalKey<FormState>();
   final personalInfoFormKey = GlobalKey<FormState>();
   final securityFormKey = GlobalKey<FormState>();
 
-  final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
   final otpController = TextEditingController();
   final fullNameController = TextEditingController();
-  final emailController = TextEditingController();
+  // Secondary identifier field: email (when signing up by phone) OR
+  // phone (when signing up by email). Optional.
+  final secondaryIdentifierController = TextEditingController();
   final dateOfBirthController = TextEditingController();
 
   final isLoading = false.obs;
@@ -33,32 +38,36 @@ class SignUpController extends GetxController {
   final isTermsAccepted = false.obs;
   final RxInt currentStep = 0.obs; // 0: personal info, 1: security, 2: OTP
   final RxString errorMessage = ''.obs;
-  final RxString prefilledPhone = ''.obs;
-  final RxInt passwordStrength = 0.obs; // 0: none, 1: weak, 2: medium, 3: strong
+  final RxInt passwordStrength = 0.obs;
 
-  final canResendOtp = false.obs;
-  final otpCountdown = 0.obs;
-  Timer? _otpTimer;
-  final RxBool _isControllerDisposed = false.obs;
+  /// The primary identifier (email or phone) carried from the entry screen.
+  final RxString identifier = ''.obs;
+  final Rx<IdentifierChannel> channel = IdentifierChannel.phone.obs;
 
-  // Store the selected DateTime object
+  // OTP resend countdown (canResendOtp / otpCountdown) provided by OtpResendTimer.
+  bool _disposed = false;
+
+  /// Stored password set during signup; applied after OTP verification.
+  String? _pendingPassword;
+
   DateTime? selectedDateOfBirth;
+
+  bool get isEmailSignup => channel.value == IdentifierChannel.email;
 
   @override
   void onInit() {
     super.onInit();
-    // Check for pre-filled phone from arguments
     final args = Get.arguments;
-    if (args != null && args is Map<String, dynamic> && args['phone'] != null) {
-      prefilledPhone.value = args['phone'] as String;
-      phoneController.text = prefilledPhone.value.replaceFirst('+91', '');
+    if (args is Map && args['identifier'] != null) {
+      identifier.value = args['identifier'] as String;
+      channel.value = (args['channel'] == 'email')
+          ? IdentifierChannel.email
+          : IdentifierChannel.phone;
     } else {
-      // No phone provided - redirect back to phone entry
-      DebugLogger.warning('SignUpView accessed without phone number, redirecting to phone entry');
+      DebugLogger.warning('SignUpView accessed without identifier; redirecting to entry');
       Future.microtask(() => Get.offNamed(AppRoutes.phoneEntry));
     }
 
-    // Listen to password changes for strength indicator
     passwordController.addListener(_updatePasswordStrength);
   }
 
@@ -68,7 +77,6 @@ class SignUpController extends GetxController {
       passwordStrength.value = 0;
       return;
     }
-
     int strength = 0;
     if (password.length >= 6) strength++;
     if (password.length >= 8) strength++;
@@ -77,12 +85,26 @@ class SignUpController extends GetxController {
     if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
 
     if (strength <= 2) {
-      passwordStrength.value = 1; // weak
+      passwordStrength.value = 1;
     } else if (strength <= 4) {
-      passwordStrength.value = 2; // medium
+      passwordStrength.value = 2;
     } else {
-      passwordStrength.value = 3; // strong
+      passwordStrength.value = 3;
     }
+  }
+
+  /// Validator for the optional secondary identifier field.
+  String? validateSecondaryIdentifier(String? value) {
+    final v = (value ?? '').trim();
+    if (v.isEmpty) return null; // optional
+    if (isEmailSignup) {
+      // Signing up by email → secondary is a phone.
+      if (!IdentifierUtils.isPhone(v)) return 'phone_invalid'.tr;
+    } else {
+      // Signing up by phone → secondary is an email.
+      if (!IdentifierUtils.isEmail(v)) return 'email_invalid'.tr;
+    }
+    return null;
   }
 
   void togglePasswordVisibility() {
@@ -95,14 +117,11 @@ class SignUpController extends GetxController {
 
   void nextStep() {
     errorMessage.value = '';
-
     if (currentStep.value == 0) {
-      // Validate personal info
       if (personalInfoFormKey.currentState?.validate() ?? false) {
         currentStep.value = 1;
       }
     } else if (currentStep.value == 1) {
-      // Validate security info and proceed to signup
       if (securityFormKey.currentState?.validate() ?? false) {
         if (!isTermsAccepted.value) {
           errorMessage.value = 'terms_consent_required'.tr;
@@ -130,12 +149,28 @@ class SignUpController extends GetxController {
 
     if (pickedDate != null) {
       selectedDateOfBirth = pickedDate;
-      final formattedDate =
+      dateOfBirthController.text =
           '${pickedDate.day.toString().padLeft(2, '0')}/'
           '${pickedDate.month.toString().padLeft(2, '0')}/'
           '${pickedDate.year}';
-      dateOfBirthController.text = formattedDate;
     }
+  }
+
+  Map<String, dynamic> _buildUserData() {
+    final dob = selectedDateOfBirth != null
+        ? '${selectedDateOfBirth!.year.toString().padLeft(4, '0')}-'
+              '${selectedDateOfBirth!.month.toString().padLeft(2, '0')}-'
+              '${selectedDateOfBirth!.day.toString().padLeft(2, '0')}'
+        : null;
+    final secondary = secondaryIdentifierController.text.trim();
+    return {
+      'full_name': fullNameController.text.trim(),
+      'date_of_birth': dob,
+      if (isEmailSignup)
+        'email': identifier.value
+      else if (secondary.isNotEmpty)
+        'email': secondary,
+    };
   }
 
   Future<void> signUp() async {
@@ -143,29 +178,32 @@ class SignUpController extends GetxController {
     errorMessage.value = '';
 
     try {
-      final phone = Formatters.normalizeIndianPhone(phoneController.text.trim());
-      final password = passwordController.text;
+      final id = identifier.value;
+      _pendingPassword = passwordController.text;
+      final userData = _buildUserData();
 
-      // Include user metadata in signup
-      final userData = {
-        'full_name': fullNameController.text.trim(),
-        'email': emailController.text.trim(),
-        'date_of_birth': selectedDateOfBirth != null
-            ? '${selectedDateOfBirth!.year.toString().padLeft(4, '0')}-'
-                  '${selectedDateOfBirth!.month.toString().padLeft(2, '0')}-'
-                  '${selectedDateOfBirth!.day.toString().padLeft(2, '0')}'
-            : null,
-      };
-
-      await _authRepository.signUpWithPhonePassword(phone, password, data: userData);
+      if (isEmailSignup) {
+        // Sends a 6-digit OTP via Supabase Magic Link / OTP template.
+        // The user is created without a password; password is set after OTP.
+        await _authRepository.signUpWithEmailOtp(id, data: userData);
+      } else {
+        await _authRepository.signUpWithPhonePassword(id, _pendingPassword!, data: userData);
+      }
 
       currentStep.value = 2; // Move to OTP step
-      _startOtpCountdown();
-
-      AppToast.success('verify_phone'.tr, 'otp_sent_message'.tr);
-
-      DebugLogger.success('Sign up initiated for $phone');
+      startOtpCountdown();
+      AppToast.success('verify_account'.tr, 'otp_sent_message'.tr);
+      DebugLogger.success('Sign up initiated');
     } on AuthException catch (e) {
+      if (e.message == 'User already registered') {
+        DebugLogger.warning('User already registered, redirecting to login');
+        ErrorHandler.handleAuthError(e);
+        Get.offNamed(
+          AppRoutes.login,
+          arguments: {'identifier': identifier.value, 'channel': channel.value.name},
+        );
+        return;
+      }
       errorMessage.value = e.message;
       ErrorHandler.handleAuthError(e);
       DebugLogger.error('Sign up failed', e);
@@ -178,23 +216,33 @@ class SignUpController extends GetxController {
     }
   }
 
-  Future<void> verifyOtp() async {
-    if (otpController.text.trim().length != 6) {
+  Future<void> verifyOtp([String? code]) async {
+    final token = (code ?? otpController.text).trim();
+    if (token.length != 6) {
       errorMessage.value = 'invalid_otp'.tr;
       return;
     }
+    if (isLoading.value) return;
 
     isLoading.value = true;
     errorMessage.value = '';
 
     try {
-      final phone = Formatters.normalizeIndianPhone(phoneController.text.trim());
-      await _authRepository.verifyPhoneOtp(phone: phone, token: otpController.text.trim());
-
-      // Success! The AuthController will now automatically navigate
-      // the user to the profile completion screen.
-      DebugLogger.success('OTP verification successful for $phone');
+      final id = identifier.value;
+      if (isEmailSignup) {
+        await _authRepository.verifyEmailOtp(email: id, token: token);
+        // Set the password collected during signup now that OTP is verified.
+        if (_pendingPassword != null && _pendingPassword!.isNotEmpty) {
+          await _authRepository.updateUserPassword(_pendingPassword!);
+        }
+        await _authRepository.recordLastMethod(AuthMethod.emailPassword, identifier: id);
+      } else {
+        await _authRepository.verifyPhoneOtp(phone: id, token: token);
+        await _authRepository.recordLastMethod(AuthMethod.phonePassword, identifier: id);
+      }
       AnalyticsService.authOtpVerified();
+      // Success! The AuthController navigates to profile completion / home.
+      DebugLogger.success('OTP verification successful');
     } on AuthException catch (e) {
       errorMessage.value = e.message;
       ErrorHandler.handleAuthError(e);
@@ -209,61 +257,35 @@ class SignUpController extends GetxController {
   }
 
   Future<void> resendOtp() async {
-    if (canResendOtp.value) {
-      try {
-        isLoading.value = true;
-        final phone = Formatters.normalizeIndianPhone(phoneController.text.trim());
-        await _authRepository.signUpWithPhonePassword(phone, passwordController.text);
-
-        _startOtpCountdown();
-        AppToast.success('otp_sent'.tr, 'otp_resent_message'.tr);
-
-        DebugLogger.info('OTP resent for signup to $phone');
-      } catch (e) {
-        ErrorHandler.handleAuthError(e);
-        DebugLogger.error('Failed to resend OTP', e);
-      } finally {
-        isLoading.value = false;
-      }
-    }
-  }
-
-  void _startOtpCountdown() {
-    // Cancel any existing timer first
-    _cancelOtpTimer();
-
-    canResendOtp.value = false;
-    otpCountdown.value = 60;
-
-    _otpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_isControllerDisposed.value) {
-        timer.cancel();
-        return;
-      }
-
-      if (otpCountdown.value > 0) {
-        otpCountdown.value--;
+    if (!canResendOtp.value) return;
+    try {
+      isLoading.value = true;
+      final id = identifier.value;
+      if (isEmailSignup) {
+        await _authRepository.signUpWithEmailOtp(id);
       } else {
-        canResendOtp.value = true;
-        timer.cancel();
+        await _authRepository.signUpWithPhonePassword(id, passwordController.text);
       }
-    });
-  }
-
-  void _cancelOtpTimer() {
-    _otpTimer?.cancel();
-    _otpTimer = null;
+      startOtpCountdown();
+      AppToast.success('otp_sent'.tr, 'otp_resent_message'.tr);
+      DebugLogger.info('OTP resent for signup');
+    } catch (e) {
+      ErrorHandler.handleAuthError(e);
+      DebugLogger.error('Failed to resend OTP', e);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void goBackToForm() {
     if (currentStep.value == 2) {
-      currentStep.value = 1; // Go back to security step from OTP
+      currentStep.value = 1;
     } else if (currentStep.value > 0) {
       currentStep.value--;
     }
     otpController.clear();
     errorMessage.value = '';
-    _cancelOtpTimer();
+    cancelOtpTimer();
   }
 
   @override
@@ -279,18 +301,15 @@ class SignUpController extends GetxController {
   }
 
   void _disposeController() {
-    if (_isControllerDisposed.value) return;
-
-    _isControllerDisposed.value = true;
-    _cancelOtpTimer();
-
+    if (_disposed) return;
+    _disposed = true;
+    disposeOtpTimer();
     try {
-      phoneController.dispose();
       passwordController.dispose();
       confirmPasswordController.dispose();
       otpController.dispose();
       fullNameController.dispose();
-      emailController.dispose();
+      secondaryIdentifierController.dispose();
       dateOfBirthController.dispose();
     } catch (e) {
       DebugLogger.error('Error disposing text controllers', e);

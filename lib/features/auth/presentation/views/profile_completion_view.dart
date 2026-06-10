@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:get/get.dart';
 
@@ -7,6 +8,7 @@ import 'package:ghar360/core/design/app_design_tokens.dart';
 import 'package:ghar360/core/utils/app_spacing.dart';
 import 'package:ghar360/features/auth/presentation/controllers/profile_completion_controller.dart';
 import 'package:ghar360/features/auth/presentation/widgets/auth_premium_shell.dart';
+import 'package:ghar360/features/auth/presentation/widgets/otp_input_field.dart';
 
 class ProfileCompletionView extends StatelessWidget {
   const ProfileCompletionView({super.key});
@@ -14,7 +16,18 @@ class ProfileCompletionView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final controller = Get.find<ProfileCompletionController>();
 
+    // Skippable add-phone step for passwordless Google users without a phone.
+    return Obx(() {
+      if (controller.showAddPhone.value) {
+        return _buildAddPhoneScreen(theme, controller);
+      }
+      return _buildProfileScreen(context, theme);
+    });
+  }
+
+  Widget _buildProfileScreen(BuildContext context, ThemeData theme) {
     return GetBuilder<ProfileCompletionController>(
       builder: (controller) {
         return Semantics(
@@ -55,6 +68,151 @@ class ProfileCompletionView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildAddPhoneScreen(ThemeData theme, ProfileCompletionController controller) {
+    return Semantics(
+      label: 'qa.auth.add_phone.screen',
+      identifier: 'qa.auth.add_phone.screen',
+      child: AuthPremiumShell(
+        title: 'add_phone_title'.tr,
+        subtitle: 'add_phone_subtitle'.tr,
+        chips: const [],
+        footer: Semantics(
+          label: 'qa.auth.add_phone.skip',
+          identifier: 'qa.auth.add_phone.skip',
+          child: TextButton(
+            key: const ValueKey('qa.auth.add_phone.skip'),
+            onPressed: controller.skipAddPhone,
+            child: Text(
+              'skip_for_now'.tr,
+              style: const TextStyle(color: AppDesign.primaryYellow, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+        child: AutofillGroup(
+          child: Obx(() {
+            final isOtpStage = controller.isPhoneOtpStage.value;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (!isOtpStage) ...[
+                  Form(
+                    key: controller.phoneFormKey,
+                    child: Semantics(
+                      label: 'qa.auth.add_phone.phone_input',
+                      identifier: 'qa.auth.add_phone.phone_input',
+                      child: TextFormField(
+                        key: const ValueKey('qa.auth.add_phone.phone_input'),
+                        controller: controller.phoneController,
+                        keyboardType: TextInputType.phone,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.telephoneNumber],
+                        onTap: controller.requestPhoneNumberHint,
+                        validator: controller.validateAddPhone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]')),
+                          LengthLimitingTextInputFormatter(13),
+                        ],
+                        style: const TextStyle(color: AppDesign.overlayLight),
+                        decoration: InputDecoration(
+                          labelText: 'phone_number'.tr,
+                          hintText: 'phone_hint'.tr,
+                          prefixIcon: const Icon(Icons.phone_outlined),
+                        ),
+                      ),
+                    ),
+                  ),
+                  AuthInlineError(message: controller.addPhoneError.value),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 56,
+                    child: FilledButton(
+                      key: const ValueKey('qa.auth.add_phone.send_otp'),
+                      onPressed: controller.isLoading.value ? null : controller.sendAddPhoneOtp,
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: AppDesignTokens.neutral900,
+                              ),
+                            )
+                          : Text(
+                              'send_otp'.tr,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: AppDesignTokens.neutral900,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    'otp_sent_to'.trParams({'identifier': controller.phoneController.text}),
+                    style: TextStyle(
+                      color: AppDesign.overlayLight.withValues(alpha: 0.7),
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  OtpInputField(
+                    controller: controller.phoneOtpController,
+                    semanticsLabel: 'qa.auth.add_phone.otp_input',
+                    onCompleted: controller.verifyAddPhoneOtp,
+                  ),
+                  AuthInlineError(message: controller.addPhoneError.value),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    height: 56,
+                    child: FilledButton(
+                      key: const ValueKey('qa.auth.add_phone.verify_otp'),
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : () => controller.verifyAddPhoneOtp(),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: AppDesignTokens.neutral900,
+                              ),
+                            )
+                          : Text(
+                              'verify_otp'.tr,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: AppDesignTokens.neutral900,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: controller.canResendOtp.value ? controller.resendAddPhoneOtp : null,
+                    style: TextButton.styleFrom(
+                      foregroundColor: controller.canResendOtp.value
+                          ? AppDesign.primaryYellow
+                          : AppDesign.overlayLight.withValues(alpha: 0.38),
+                    ),
+                    child: Text(
+                      controller.canResendOtp.value
+                          ? 'resend_code'.tr
+                          : '${'resend_in'.tr} ${controller.otpCountdown.value}s',
+                    ),
+                  ),
+                ],
+              ],
+            );
+          }),
+        ),
+      ),
     );
   }
 

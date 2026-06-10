@@ -6,7 +6,10 @@ import 'package:json_annotation/json_annotation.dart';
 part 'visit_model.g.dart';
 
 enum VisitStatus {
-  @JsonValue('scheduled')
+  // Wire values must match the backend VisitStatus enum (app/models/enums.py),
+  // which serializes scheduled as 'requested' and rescheduled as
+  // 'reschedule_suggested'.
+  @JsonValue('requested')
   scheduled,
   @JsonValue('confirmed')
   confirmed,
@@ -14,7 +17,7 @@ enum VisitStatus {
   completed,
   @JsonValue('cancelled')
   cancelled,
-  @JsonValue('rescheduled')
+  @JsonValue('reschedule_suggested')
   rescheduled,
 }
 
@@ -22,16 +25,11 @@ enum VisitStatus {
 class VisitAgentInfo {
   final int id;
   final String name;
-  @JsonKey(name: 'agent_code')
-  final String agentCode;
-  final String phone;
+  final String? phone;
+  @JsonKey(name: 'avatar_url')
+  final String? avatarUrl;
 
-  const VisitAgentInfo({
-    required this.id,
-    required this.name,
-    required this.agentCode,
-    required this.phone,
-  });
+  const VisitAgentInfo({required this.id, required this.name, this.phone, this.avatarUrl});
 
   factory VisitAgentInfo.fromJson(Map<String, dynamic> json) => _$VisitAgentInfoFromJson(json);
 
@@ -51,6 +49,7 @@ class VisitModel {
   final DateTime scheduledDate;
   @JsonKey(name: 'actual_date')
   final DateTime? actualDate;
+  @JsonKey(unknownEnumValue: VisitStatus.scheduled)
   final VisitStatus status;
   @JsonKey(name: 'special_requirements')
   final String? specialRequirements;

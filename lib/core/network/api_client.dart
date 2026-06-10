@@ -201,6 +201,45 @@ class ApiClient {
     );
   }
 
+  /// Upload a file via multipart/form-data POST.
+  Future<ApiResponse> upload(
+    String endpoint, {
+    required String field,
+    required String filePath,
+    Map<String, String>? fields,
+    bool requireAuth = true,
+  }) async {
+    final url = _buildUrl(endpoint, null);
+    var headers = await _buildHeaders(requireAuth: requireAuth, forceRefresh: false);
+    headers.remove('Content-Type');
+
+    final form = getx.FormData({
+      field: getx.MultipartFile(filePath, filename: filePath.split('/').last),
+      if (fields != null) ...fields,
+    });
+
+    DebugLogger.api('🚀 API UPLOAD POST $url');
+
+    try {
+      final response = await _resolvedClient.post(url, form, headers: headers);
+      DebugLogger.api('📨 API UPLOAD POST $url → ${response.statusCode}');
+
+      if (response.statusCode == null || response.statusCode! >= 400) {
+        throw _mapHttpError(response);
+      }
+
+      final body = response.body is String ? jsonDecode(response.body) : response.body;
+      return ApiResponse(
+        statusCode: response.statusCode ?? 200,
+        body: body,
+        headers: response.headers ?? {},
+      );
+    } catch (e, st) {
+      DebugLogger.error('Upload failed for $url', e, st);
+      rethrow;
+    }
+  }
+
   Future<ApiResponse> _makeRequest(
     String method,
     String endpoint, {

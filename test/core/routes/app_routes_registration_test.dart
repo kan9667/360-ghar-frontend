@@ -25,6 +25,7 @@ void main() {
       AppRoutes.login,
       AppRoutes.signup,
       AppRoutes.forgotPassword,
+      AppRoutes.setPassword,
       AppRoutes.profileCompletion,
       AppRoutes.dashboard,
       AppRoutes.discover,

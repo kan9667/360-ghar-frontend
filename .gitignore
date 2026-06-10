@@ -93,3 +93,26 @@ ios/Runner/GeneratedPluginRegistrant.*
 # Xcode user data
 ios/Runner.xcodeproj/xcuserdata/
 ios/Runner.xcworkspace/xcuserdata/
+
+# iOS release & distribution artifacts
+# NOTE: ios/ExportOptions.plist IS committed intentionally (build config, no secrets).
+*.ipa
+*.xcarchive
+*.dSYM.zip
+**/*.dSYM/
+
+# Code-signing secrets — NEVER commit these
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.p8
+*.cer
+*.certSigningRequest
+ios/fastlane/report.xml
+ios/fastlane/Preview.html
+ios/fastlane/screenshots
+ios/fastlane/test_output
+
+# App Store Connect API keys
+AuthKey_*.p8
+**/private_keys/

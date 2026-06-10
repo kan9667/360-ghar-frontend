@@ -28,6 +28,7 @@ class Root extends StatelessWidget {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
         case AuthStatus.unauthenticated:
+        case AuthStatus.requiresPasswordSetup:
         case AuthStatus.requiresProfileCompletion:
         case AuthStatus.authenticated:
           // AuthNavigationService handles navigation for these states

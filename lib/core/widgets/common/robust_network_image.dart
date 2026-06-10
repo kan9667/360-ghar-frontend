@@ -16,17 +16,14 @@ class ImageLoadingService {
     }
   }
 
-  static bool isPlaceholderUrl(String url) {
-    return url.contains('placeholder.com') ||
-        url.contains('picsum.photos') ||
-        url.contains('via.placeholder');
-  }
-
   static String? getValidImageUrl(String? url) {
-    if (url == null || url.isEmpty) return null;
-    if (!ImageCacheService.instance.isValidImageUrl(url)) return null;
-    if (isPlaceholderUrl(url)) {
-      return null; // Skip problematic placeholder services
+    if (url == null || url.isEmpty) {
+      debugPrint('🔍 ImageLoad: URL is null or empty');
+      return null;
+    }
+    if (!ImageCacheService.instance.isValidImageUrl(url)) {
+      debugPrint('🔍 ImageLoad: URL failed isValidImageUrl: "$url"');
+      return null;
     }
     return url;
   }
@@ -61,13 +58,13 @@ class RobustNetworkImage extends StatelessWidget {
     // Validate image URL first
     final validUrl = ImageLoadingService.getValidImageUrl(imageUrl);
 
-    // If no valid URL, show placeholder immediately
+    // If no valid URL, show error widget (not a forever-spinning loader)
     if (validUrl == null || validUrl.isEmpty) {
-      final placeholderFallback = placeholder ?? _buildDefaultPlaceholder();
+      final errorFallback = errorWidget ?? _buildDefaultErrorWidget();
       if (borderRadius != null) {
-        return ClipRRect(borderRadius: borderRadius!, child: placeholderFallback);
+        return ClipRRect(borderRadius: borderRadius!, child: errorFallback);
       }
-      return placeholderFallback;
+      return errorFallback;
     }
 
     // Use unified image builder with SVG support
@@ -82,6 +79,7 @@ class RobustNetworkImage extends StatelessWidget {
   }
 
   Widget _buildUnifiedImage(String url) {
+    debugPrint('🔍 ImageLoad: Loading image URL: "$url"');
     if (_isSvgUrl(url)) {
       return _buildSvgImage(url);
     }
@@ -95,7 +93,10 @@ class RobustNetworkImage extends StatelessWidget {
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,
       placeholder: (context, placeholderUrl) => placeholder ?? _buildDefaultPlaceholder(),
-      errorWidget: (context, error, stackTrace) => errorWidget ?? _buildDefaultErrorWidget(),
+      errorWidget: (context, error, stackTrace) {
+        debugPrint('🔍 ImageLoad: Failed to load "$url": $error');
+        return errorWidget ?? _buildDefaultErrorWidget();
+      },
     );
   }
 

@@ -350,7 +350,7 @@ appId: com.the360ghar.ghar360
 # 7. DEEP LINK — open a property via short URL
 # ----------------------------------------------------------------
 - runScript: scripts/get_property_id.js
-- openLink: "https://ghar.sale/p/${output.propertyId}"
+- openLink: "https://the360ghar.com/p/${output.propertyId}"
 - tapOn:
     text: "Open"
     optional: true

@@ -195,7 +195,7 @@ The app uses a centralized authentication state router that manages the entire a
 - **Providers** (`core/data/providers/`): 
   - **ApiService**: Primary API integration with error handling and authentication
 - **Services** (`core/services/`):
-  - **SecureTokenManager**: Enhanced secure token storage using FlutterSecureStorage with GetStorage fallback
+  - **Auth/session tokens**: Managed by the Supabase SDK (`supabase_flutter`) rather than a custom secure-storage manager
   - **DeepLinkService**: Handles deep links and navigation
 - **Repositories** (`core/data/repositories/`): Abstraction layer between controllers and data sources
   - **PropertiesRepository**: Property data access, caching, and filtering
@@ -325,7 +325,7 @@ The app uses Supabase as the primary backend service:
 - **Database**: PostgreSQL database for property listings, user profiles, and bookings
 - **Authentication**: Built-in authentication with social login support
 - **Real-time**: Live updates for property availability and new listings
-- **Storage**: File storage for property images and user avatars
+- **Storage**: File storage via Cloudinary (accessed through backend API) for property images and user avatars
 - **Row Level Security**: Database-level security policies for data protection
 
 ## Environment Configuration
@@ -369,7 +369,6 @@ LOG_API_CALLS=true
 - **http**: ^1.2.2 - HTTP client for API calls
 - **supabase_flutter**: ^2.10.0 - Backend as a Service integration
 - **get_storage**: ^2.1.1 - Local data persistence
-- **flutter_secure_storage**: ^9.2.2 - Secure token storage for authentication
 
 ### UI/UX
 - **google_fonts**: ^6.2.1 - Typography (Inter font family)
@@ -653,7 +652,7 @@ dart run build_runner build --delete-conflicting-outputs
 2. System sends OTP via SMS for verification
 3. AuthController validates OTP and calls AuthRepository
 4. Backend handles authentication and returns secure tokens
-5. Tokens stored via SecureTokenManager in secure local storage
+5. Session tokens are persisted and refreshed by the Supabase SDK (`supabase_flutter`)
 6. User redirected to profile completion or home based on setup status
 
 ### Profile Completion Flow
@@ -739,7 +738,6 @@ cd ios && pod install                                     # iOS dependencies
 - **Models**: `lib/core/data/models/` (with .g.dart generated files)
 - **Authentication Models**: `lib/core/models/auth_status.dart`
 - **API Service**: `lib/core/data/providers/api_service.dart`
-- **Secure Token Manager**: `lib/core/services/secure_token_manager.dart`
 - **Root Router**: `lib/root.dart`
 - **Routes**: `lib/core/routes/app_routes.dart` and `app_pages.dart`
 - **Theme**: `lib/core/utils/theme.dart` and `app_colors.dart`  
@@ -749,7 +747,7 @@ cd ios && pod install                                     # iOS dependencies
 ### Architecture Pattern
 ```
 Root Router → View (SafeGetView) → Controller (GetxController) → Repository → ApiService → Supabase
-                                                              ↘ SecureTokenManager ↗
+                                                              (auth/session tokens via Supabase SDK)
 ```
 
 ### Essential GetX Patterns

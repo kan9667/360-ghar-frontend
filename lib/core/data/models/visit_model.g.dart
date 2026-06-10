@@ -9,15 +9,15 @@ part of 'visit_model.dart';
 VisitAgentInfo _$VisitAgentInfoFromJson(Map<String, dynamic> json) => VisitAgentInfo(
   id: (json['id'] as num).toInt(),
   name: json['name'] as String,
-  agentCode: json['agent_code'] as String,
-  phone: json['phone'] as String,
+  phone: json['phone'] as String?,
+  avatarUrl: json['avatar_url'] as String?,
 );
 
 Map<String, dynamic> _$VisitAgentInfoToJson(VisitAgentInfo instance) => <String, dynamic>{
   'id': instance.id,
   'name': instance.name,
-  'agent_code': instance.agentCode,
   'phone': instance.phone,
+  'avatar_url': instance.avatarUrl,
 };
 
 VisitModel _$VisitModelFromJson(Map<String, dynamic> json) => VisitModel(
@@ -27,7 +27,7 @@ VisitModel _$VisitModelFromJson(Map<String, dynamic> json) => VisitModel(
   agentId: (json['agent_id'] as num?)?.toInt(),
   scheduledDate: DateTime.parse(json['scheduled_date'] as String),
   actualDate: json['actual_date'] == null ? null : DateTime.parse(json['actual_date'] as String),
-  status: $enumDecode(_$VisitStatusEnumMap, json['status']),
+  status: $enumDecode(_$VisitStatusEnumMap, json['status'], unknownValue: VisitStatus.scheduled),
   specialRequirements: json['special_requirements'] as String?,
   visitNotes: json['visit_notes'] as String?,
   visitorFeedback: json['visitor_feedback'] as String?,
@@ -77,9 +77,9 @@ Map<String, dynamic> _$VisitModelToJson(VisitModel instance) => <String, dynamic
 };
 
 const _$VisitStatusEnumMap = {
-  VisitStatus.scheduled: 'scheduled',
+  VisitStatus.scheduled: 'requested',
   VisitStatus.confirmed: 'confirmed',
   VisitStatus.completed: 'completed',
   VisitStatus.cancelled: 'cancelled',
-  VisitStatus.rescheduled: 'rescheduled',
+  VisitStatus.rescheduled: 'reschedule_suggested',
 };

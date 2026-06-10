@@ -1,13 +1,11 @@
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:ghar360/core/data/models/property_image_model.dart';
 import 'package:ghar360/core/data/models/property_model.dart';
+import 'package:ghar360/core/network/api_client.dart';
+import 'package:ghar360/core/network/api_paths.dart';
 import 'package:ghar360/core/utils/debug_logger.dart';
 import 'package:ghar360/features/properties/data/properties_repository.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_compress/video_compress.dart';
 
 class MediaUploadResult {
@@ -27,12 +25,10 @@ class MediaUploadResult {
 }
 
 class MediaUploadService {
-  MediaUploadService({String? bucket})
-    : _bucket = bucket ?? dotenv.env['SUPABASE_MEDIA_BUCKET'] ?? 'property-media';
+  MediaUploadService({required ApiClient apiClient}) : _apiClient = apiClient;
 
+  final ApiClient _apiClient;
   final ImagePicker _picker = ImagePicker();
-  final SupabaseClient _client = Supabase.instance.client;
-  final String _bucket;
 
   static const int _maxImageBytes = 10 * 1024 * 1024; // 10 MB
   static const int _maxVideoBytes = 100 * 1024 * 1024; // 100 MB
@@ -66,17 +62,31 @@ class MediaUploadService {
       return null;
     }
 
-    final path = _buildPath(propertyId, ext, category: category);
+    try {
+      final response = await _apiClient.upload(
+        ApiPaths.upload,
+        field: 'file',
+        filePath: file.path,
+        fields: {'folder': 'property_image', 'visibility': 'public'},
+      );
 
-    final upload = await _uploadBytes(bytes, path: path, contentType: 'image/$ext');
-    if (upload == null) return null;
+      final data = response.body as Map<String, dynamic>;
+      final url = data['public_url'] as String? ?? '';
+      if (url.isEmpty) {
+        DebugLogger.warning('Upload succeeded but no URL returned');
+        return null;
+      }
 
-    return MediaUploadResult(
-      url: upload,
-      storagePath: path,
-      bytes: bytes.lengthInBytes,
-      mimeType: 'image/$ext',
-    );
+      return MediaUploadResult(
+        url: url,
+        storagePath: data['file_path'] as String? ?? '',
+        bytes: bytes.lengthInBytes,
+        mimeType: 'image/$ext',
+      );
+    } catch (e, st) {
+      DebugLogger.error('Failed to upload image', e, st);
+      return null;
+    }
   }
 
   Future<MediaUploadResult?> pickAndUploadVideo({
@@ -99,7 +109,7 @@ class MediaUploadService {
       return null;
     }
 
-    XFile uploadFile = file;
+    String uploadPath = file.path;
     Duration? duration;
     try {
       if (compress) {
@@ -109,7 +119,7 @@ class MediaUploadService {
           includeAudio: true,
         );
         if (info?.file != null) {
-          uploadFile = XFile(info!.file!.path);
+          uploadPath = info!.file!.path;
           duration = info.duration != null ? Duration(milliseconds: info.duration!.toInt()) : null;
         }
       }
@@ -117,28 +127,42 @@ class MediaUploadService {
       DebugLogger.warning('Video compression failed, uploading original file', e);
     }
 
-    final bytes = await uploadFile.readAsBytes();
-    if (bytes.lengthInBytes > _maxVideoBytes) {
+    final uploadBytes = await XFile(uploadPath).readAsBytes();
+    if (uploadBytes.lengthInBytes > _maxVideoBytes) {
       DebugLogger.warning(
         'Rejected video exceeding size limit: '
-        '${(bytes.lengthInBytes / 1024 / 1024).toStringAsFixed(1)} MB',
+        '${(uploadBytes.lengthInBytes / 1024 / 1024).toStringAsFixed(1)} MB',
       );
       return null;
     }
 
-    final ext = _fileExtension(uploadFile.path, fallback: 'mp4');
-    final path = _buildPath(propertyId, ext, category: 'videos');
+    try {
+      final response = await _apiClient.upload(
+        ApiPaths.upload,
+        field: 'file',
+        filePath: uploadPath,
+        fields: {'folder': 'property_video', 'visibility': 'public'},
+      );
 
-    final upload = await _uploadBytes(bytes, path: path, contentType: 'video/$ext');
-    if (upload == null) return null;
+      final data = response.body as Map<String, dynamic>;
+      final url = data['public_url'] as String? ?? '';
+      if (url.isEmpty) {
+        DebugLogger.warning('Upload succeeded but no URL returned');
+        return null;
+      }
 
-    return MediaUploadResult(
-      url: upload,
-      storagePath: path,
-      bytes: bytes.lengthInBytes,
-      duration: duration,
-      mimeType: 'video/$ext',
-    );
+      final ext = _fileExtension(uploadPath, fallback: 'mp4');
+      return MediaUploadResult(
+        url: url,
+        storagePath: data['file_path'] as String? ?? '',
+        bytes: uploadBytes.lengthInBytes,
+        duration: duration,
+        mimeType: 'video/$ext',
+      );
+    } catch (e, st) {
+      DebugLogger.error('Failed to upload video', e, st);
+      return null;
+    }
   }
 
   Future<PropertyModel?> uploadImageAndAttach({
@@ -184,35 +208,6 @@ class MediaUploadService {
       videoTourUrl: result.url,
       videoUrls: [result.url],
     );
-  }
-
-  Future<String?> _uploadBytes(
-    Uint8List data, {
-    required String path,
-    required String contentType,
-  }) async {
-    if (_bucket.isEmpty) {
-      DebugLogger.warning('Supabase bucket not configured, skipping upload');
-      return null;
-    }
-    try {
-      await _client.storage
-          .from(_bucket)
-          .uploadBinary(path, data, fileOptions: FileOptions(contentType: contentType));
-      final publicUrl = _client.storage.from(_bucket).getPublicUrl(path);
-      DebugLogger.success('Uploaded media to $publicUrl');
-      return publicUrl;
-    } catch (e, st) {
-      DebugLogger.error('Failed to upload media to Supabase', e, st);
-      return null;
-    }
-  }
-
-  String _buildPath(int propertyId, String extension, {required String category}) {
-    final safeExt = extension.replaceAll('.', '');
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final random = Random().nextInt(99999);
-    return 'properties/$propertyId/$category/$timestamp-$random.$safeExt';
   }
 
   String _fileExtension(String path, {required String fallback}) {

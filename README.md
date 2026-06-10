@@ -27,7 +27,7 @@ This project is built with a modern, scalable technology stack and follows a cle
 
 -   **Framework:** [Flutter](https://flutter.dev/)
 -   **State Management:** [GetX](https://pub.dev/packages/get) (for state, dependency, and route management)
--   **Backend:** [Supabase](https://supabase.io/) (Authentication, Database, Storage)
+-   **Backend:** [Supabase](https://supabase.io/) (Authentication, Database) + [Cloudinary](https://cloudinary.com/) (Storage)
 -   **Mapping:** [flutter_map](https://pub.dev/packages/flutter_map)
 -   **Code Generation:** [json_serializable](https://pub.dev/packages/json_serializable) for type-safe models
 -   **Local Storage:** [get_storage](https://pub.dev/packages/get_storage)

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:ghar360/core/controllers/auth_controller.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
@@ -7,6 +6,7 @@ import 'package:ghar360/core/routes/app_routes.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
 import 'package:ghar360/features/auth/presentation/controllers/signup_controller.dart';
 import 'package:ghar360/features/auth/presentation/widgets/auth_premium_shell.dart';
+import 'package:ghar360/features/auth/presentation/widgets/otp_input_field.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SignUpView extends GetView<SignUpController> {
@@ -30,7 +30,7 @@ class SignUpView extends GetView<SignUpController> {
                 ? 'create_account'.tr
                 : step == 1
                 ? 'auth_signup_security_title'.tr
-                : 'verify_phone_number'.tr;
+                : 'verify_your_account'.tr;
 
             return AuthPremiumShell(
               title: title,
@@ -62,65 +62,21 @@ class SignUpView extends GetView<SignUpController> {
                       ),
                     )
                   : null,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildProgress(theme),
-                  const SizedBox(height: 20),
-                  if (step == 0) _buildPersonalStep(theme),
-                  if (step == 1) _buildSecurityStep(theme),
-                  if (step == 2) _buildOtpStep(theme),
-                ],
+              child: AutofillGroup(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildProgress(theme),
+                    const SizedBox(height: 20),
+                    if (step == 0) _buildPersonalStep(theme),
+                    if (step == 1) _buildSecurityStep(theme),
+                    if (step == 2) _buildOtpStep(theme),
+                  ],
+                ),
               ),
             );
           }),
-          Obx(() {
-            if (!authController.isAuthResolving.value) {
-              return const SizedBox.shrink();
-            }
-            return Positioned.fill(
-              child: Stack(
-                children: [
-                  ModalBarrier(
-                    dismissible: false,
-                    color: AppDesign.overlayDark.withValues(alpha: 0.7),
-                  ),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                      decoration: BoxDecoration(
-                        color: AppDesign.overlayLight.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppDesign.overlayLight.withValues(alpha: 0.18)),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: AppDesign.primaryYellow,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'loading'.tr,
-                            style: const TextStyle(
-                              color: AppDesign.overlayLight,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
+          _buildResolvingOverlay(authController),
         ],
       ),
     );
@@ -178,58 +134,7 @@ class SignUpView extends GetView<SignUpController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Obx(() {
-            final hasPrefilledPhone = controller.prefilledPhone.value.isNotEmpty;
-            if (!hasPrefilledPhone) {
-              return const SizedBox.shrink();
-            }
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppDesign.overlayLight.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppDesign.overlayLight.withValues(alpha: 0.15)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: AppDesign.primaryYellow.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.phone_outlined,
-                      color: AppDesign.primaryYellow,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      controller.prefilledPhone.value,
-                      style: const TextStyle(
-                        color: AppDesign.overlayLight,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Get.offNamed(AppRoutes.phoneEntry),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppDesign.primaryYellow,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                    child: Text('change'.tr),
-                  ),
-                ],
-              ),
-            );
-          }),
+          _buildIdentifierBanner(),
           Semantics(
             label: 'qa.auth.signup.full_name_input',
             identifier: 'qa.auth.signup.full_name_input',
@@ -237,6 +142,7 @@ class SignUpView extends GetView<SignUpController> {
               key: const ValueKey('qa.auth.signup.full_name_input'),
               controller: controller.fullNameController,
               textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.name],
               style: const TextStyle(color: AppDesign.overlayLight),
               decoration: InputDecoration(
                 labelText: 'full_name'.tr,
@@ -251,30 +157,7 @@ class SignUpView extends GetView<SignUpController> {
             ),
           ),
           const SizedBox(height: 14),
-          Semantics(
-            label: 'qa.auth.signup.email_input',
-            identifier: 'qa.auth.signup.email_input',
-            child: TextFormField(
-              key: const ValueKey('qa.auth.signup.email_input'),
-              controller: controller.emailController,
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              style: const TextStyle(color: AppDesign.overlayLight),
-              decoration: InputDecoration(
-                labelText: 'email_address'.tr,
-                prefixIcon: const Icon(Icons.email_outlined),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'email_required'.tr;
-                }
-                if (!GetUtils.isEmail(value.trim())) {
-                  return 'email_invalid'.tr;
-                }
-                return null;
-              },
-            ),
-          ),
+          _buildSecondaryIdentifierField(),
           const SizedBox(height: 14),
           Semantics(
             label: 'qa.auth.signup.dob_input',
@@ -324,6 +207,83 @@ class SignUpView extends GetView<SignUpController> {
     );
   }
 
+  Widget _buildIdentifierBanner() {
+    return Obx(() {
+      final isEmail = controller.isEmailSignup;
+      return Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppDesign.overlayLight.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppDesign.overlayLight.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppDesign.primaryYellow.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isEmail ? Icons.alternate_email : Icons.phone_outlined,
+                color: AppDesign.primaryYellow,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                controller.identifier.value,
+                style: const TextStyle(
+                  color: AppDesign.overlayLight,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Get.offNamed(AppRoutes.phoneEntry),
+              style: TextButton.styleFrom(
+                foregroundColor: AppDesign.primaryYellow,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              child: Text('change'.tr),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildSecondaryIdentifierField() {
+    return Obx(() {
+      final isEmailSignup = controller.isEmailSignup;
+      // Signing up by email → optional phone; by phone → optional email.
+      return Semantics(
+        label: 'qa.auth.signup.secondary_identifier_input',
+        identifier: 'qa.auth.signup.secondary_identifier_input',
+        child: TextFormField(
+          key: const ValueKey('qa.auth.signup.secondary_identifier_input'),
+          controller: controller.secondaryIdentifierController,
+          keyboardType: isEmailSignup ? TextInputType.phone : TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+          autofillHints: isEmailSignup
+              ? const [AutofillHints.telephoneNumber]
+              : const [AutofillHints.email],
+          style: const TextStyle(color: AppDesign.overlayLight),
+          decoration: InputDecoration(
+            labelText: isEmailSignup ? 'phone_optional'.tr : 'email_optional'.tr,
+            prefixIcon: Icon(isEmailSignup ? Icons.phone_outlined : Icons.email_outlined),
+          ),
+          validator: controller.validateSecondaryIdentifier,
+        ),
+      );
+    });
+  }
+
   Widget _buildSecurityStep(ThemeData theme) {
     return Form(
       key: controller.securityFormKey,
@@ -339,6 +299,7 @@ class SignUpView extends GetView<SignUpController> {
                 controller: controller.passwordController,
                 obscureText: !controller.isPasswordVisible.value,
                 textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.newPassword],
                 style: const TextStyle(color: AppDesign.overlayLight),
                 decoration: InputDecoration(
                   labelText: 'password'.tr,
@@ -374,6 +335,7 @@ class SignUpView extends GetView<SignUpController> {
                 controller: controller.confirmPasswordController,
                 obscureText: !controller.isConfirmPasswordVisible.value,
                 textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.newPassword],
                 style: const TextStyle(color: AppDesign.overlayLight),
                 decoration: InputDecoration(
                   labelText: 'confirm_password'.tr,
@@ -482,35 +444,18 @@ class SignUpView extends GetView<SignUpController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'enter_otp_subtitle'.tr,
-          style: TextStyle(color: AppDesign.overlayLight.withValues(alpha: 0.7), fontSize: 14),
-          textAlign: TextAlign.center,
+        Obx(
+          () => Text(
+            'otp_sent_to'.trParams({'identifier': controller.identifier.value}),
+            style: TextStyle(color: AppDesign.overlayLight.withValues(alpha: 0.7), fontSize: 14),
+            textAlign: TextAlign.center,
+          ),
         ),
         const SizedBox(height: 20),
-        Semantics(
-          label: 'qa.auth.signup.otp_input',
-          identifier: 'qa.auth.signup.otp_input',
-          child: TextFormField(
-            key: const ValueKey('qa.auth.signup.otp_input'),
-            controller: controller.otpController,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppDesign.overlayLight,
-              letterSpacing: 8,
-              fontWeight: FontWeight.w700,
-              fontSize: 24,
-            ),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: 'enter_otp'.tr,
-              hintText: 'otp_hint'.tr,
-              counterText: '',
-              prefixIcon: const Icon(Icons.security),
-            ),
-          ),
+        OtpInputField(
+          controller: controller.otpController,
+          semanticsLabel: 'qa.auth.signup.otp_input',
+          onCompleted: controller.verifyOtp,
         ),
         Obx(() => AuthInlineError(message: controller.errorMessage.value)),
         const SizedBox(height: 18),
@@ -522,7 +467,7 @@ class SignUpView extends GetView<SignUpController> {
               identifier: 'qa.auth.signup.verify_otp',
               child: FilledButton(
                 key: const ValueKey('qa.auth.signup.verify_otp'),
-                onPressed: controller.isLoading.value ? null : controller.verifyOtp,
+                onPressed: controller.isLoading.value ? null : () => controller.verifyOtp(),
                 child: controller.isLoading.value
                     ? const SizedBox(
                         height: 18,
@@ -564,6 +509,53 @@ class SignUpView extends GetView<SignUpController> {
         OutlinedButton(onPressed: controller.goBackToForm, child: Text('back'.tr)),
       ],
     );
+  }
+
+  Widget _buildResolvingOverlay(AuthController authController) {
+    return Obx(() {
+      if (!authController.isAuthResolving.value) {
+        return const SizedBox.shrink();
+      }
+      return Positioned.fill(
+        child: Stack(
+          children: [
+            ModalBarrier(dismissible: false, color: AppDesign.overlayDark.withValues(alpha: 0.7)),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                decoration: BoxDecoration(
+                  color: AppDesign.overlayLight.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppDesign.overlayLight.withValues(alpha: 0.18)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppDesign.primaryYellow,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'loading'.tr,
+                      style: const TextStyle(
+                        color: AppDesign.overlayLight,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Future<void> _openTerms() async {

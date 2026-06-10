@@ -50,6 +50,12 @@ class AuthNavigationService extends GetxService {
           }
           break;
 
+        case AuthStatus.requiresPasswordSetup:
+          if (Get.currentRoute != AppRoutes.setPassword) {
+            Get.offAllNamed(AppRoutes.setPassword);
+          }
+          break;
+
         case AuthStatus.requiresProfileCompletion:
           if (Get.currentRoute != AppRoutes.profileCompletion) {
             Get.offAllNamed(AppRoutes.profileCompletion);

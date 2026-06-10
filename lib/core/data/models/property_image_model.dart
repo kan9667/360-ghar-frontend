@@ -7,7 +7,7 @@ class PropertyImageModel {
   final int id;
   @JsonKey(name: 'property_id')
   final int propertyId;
-  @JsonKey(name: 'image_url', defaultValue: 'https://via.placeholder.com/400x300?text=No+Image')
+  @JsonKey(name: 'image_url', defaultValue: '')
   final String imageUrl;
   final String? caption;
   @JsonKey(name: 'display_order', defaultValue: 0)
@@ -36,9 +36,12 @@ class PropertyImageModel {
 
   Map<String, dynamic> toJson() => _$PropertyImageModelToJson(this);
 
+  /// Create an empty placeholder for properties with no image data.
+  factory PropertyImageModel.empty({int propertyId = -1}) =>
+      PropertyImageModel(id: -1, propertyId: propertyId, imageUrl: '');
+
   // Helper methods
-  bool get isValid =>
-      imageUrl.isNotEmpty && imageUrl != 'https://via.placeholder.com/400x300?text=No+Image';
+  bool get isValid => imageUrl.isNotEmpty;
 
   /// Payload-friendly map that keeps both main-image flags in sync.
   Map<String, dynamic> toApiJson() {

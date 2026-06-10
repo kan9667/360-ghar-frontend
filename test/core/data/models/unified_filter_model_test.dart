@@ -40,4 +40,26 @@ void main() {
       expect(params['property_type'], ['apartment', 'house', 'plot', 'office', 'flatmate']);
     });
   });
+
+  group('LocationData parsing', () {
+    test('fromJson throws on missing coordinates instead of defaulting to 0,0', () {
+      expect(
+        () => LocationData.fromJson({'name': 'Delhi', 'latitude': null, 'longitude': null}),
+        throwsFormatException,
+      );
+    });
+
+    test('tryFromJson returns null on missing coordinates and parses valid input', () {
+      expect(LocationData.tryFromJson({'name': 'Delhi'}), isNull);
+      expect(LocationData.tryFromJson(null), isNull);
+
+      final location = LocationData.tryFromJson({
+        'name': 'Delhi',
+        'latitude': 28.6139,
+        'longitude': 77.2090,
+      });
+      expect(location?.latitude, 28.6139);
+      expect(location?.longitude, 77.2090);
+    });
+  });
 }

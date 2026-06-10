@@ -44,6 +44,9 @@ class ApiPaths {
   static const String usersLocation = '/users/location';
   static const String usersPreferences = '/users/preferences';
 
+  // Upload
+  static const String upload = '/upload';
+
   // Swipes
   static const String swipes = '/swipes';
   static const String swipesHistory = swipes;

@@ -177,7 +177,7 @@ class DiscoverController extends GetxController {
   // ── Swipe actions ──
 
   Future<void> swipeRight(PropertyModel property) async {
-    await _handleSwipe(property, true);
+    if (!await _handleSwipe(property, true)) return;
     _recordSwipeStats(true);
     await _safeAnalytics(
       'property_like',
@@ -186,7 +186,7 @@ class DiscoverController extends GetxController {
   }
 
   Future<void> swipeLeft(PropertyModel property) async {
-    await _handleSwipe(property, false);
+    if (!await _handleSwipe(property, false)) return;
     _recordSwipeStats(false);
     await _safeAnalytics(
       'property_pass',
@@ -194,7 +194,15 @@ class DiscoverController extends GetxController {
     );
   }
 
-  Future<void> _handleSwipe(PropertyModel property, bool isLiked) async {
+  /// Returns false when the swipe was ignored as a duplicate gesture.
+  Future<bool> _handleSwipe(PropertyModel property, bool isLiked) async {
+    // recordSwipe synchronously removes the property from the deck, so a
+    // property no longer in the deck means this gesture is a duplicate
+    // (e.g. rapid double-tap on an action button) — ignore it.
+    if (!deck.any((p) => p.id == property.id)) {
+      DebugLogger.warning('⚠️ Ignoring duplicate swipe for property ${property.id}');
+      return false;
+    }
     try {
       DebugLogger.api(
         '👆 Swiping ${isLiked ? 'RIGHT (LIKE)' : 'LEFT (PASS)'}: '
@@ -228,8 +236,10 @@ class DiscoverController extends GetxController {
       } else {
         _checkForPrefetch();
       }
+      return true;
     } catch (e) {
       DebugLogger.error('❌ Failed to handle swipe: $e');
+      return false;
     }
   }
 

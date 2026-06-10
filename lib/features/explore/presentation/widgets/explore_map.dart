@@ -48,6 +48,7 @@ class _ExploreMapState extends State<ExploreMap> {
 
   MapLibreMapController? _mapController;
   bool _styleLoaded = false;
+  bool _mapRendered = false;
 
   // Screen positions for each property marker, keyed by property id.
   final Map<int, Offset> _markerScreenPositions = {};
@@ -209,7 +210,10 @@ class _ExploreMapState extends State<ExploreMap> {
     await _syncPropertiesSource();
     // Let the controller move the camera to the resolved location.
     _controller.onMapReady();
-    await _updateOverlays();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mapRendered = true;
+      _updateOverlays();
+    });
   }
 
   void _onCameraIdle() {
@@ -224,7 +228,7 @@ class _ExploreMapState extends State<ExploreMap> {
 
   Future<void> _updateOverlays() async {
     final controller = _mapController;
-    if (!mounted || controller == null || !_styleLoaded) return;
+    if (!mounted || controller == null || !_styleLoaded || !_mapRendered) return;
 
     final markers = _controller.propertyMarkers;
     final positions = <int, Offset>{};
@@ -257,7 +261,7 @@ class _ExploreMapState extends State<ExploreMap> {
   Future<Set<int>> _computeClusteredIds(Map<int, Offset> positions) async {
     final controller = _mapController;
     final result = <int>{};
-    if (controller == null || positions.isEmpty) return result;
+    if (controller == null || positions.isEmpty || !_mapRendered) return result;
 
     final size = context.size;
     if (size == null) return result;

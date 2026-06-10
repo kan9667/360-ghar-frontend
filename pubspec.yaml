@@ -37,7 +37,6 @@ dependencies:
   webview_flutter_android: ^4.10.4
   image_network: ^2.1.2
   flutter_cache_manager: ^3.4.1
-  flutter_secure_storage: ^9.2.2
   url_launcher: ^6.3.0
   image_picker: ^1.1.2
   flutter_markdown: ^0.7.3
@@ -67,6 +66,17 @@ dependencies:
 
   meta: any
   in_app_update: ^4.2.5
+
+  # Authentication: native Google Sign-In (ID-token flow) + nonce hashing
+  google_sign_in: ^7.2.0
+  crypto: ^3.0.7
+  # Android phone-number hint picker (gated to Platform.isAndroid)
+  smart_auth: ^3.2.0
+  # SMS OTP autofill (CodeAutoFill mixin) — same major as 360-flatmates
+  sms_autofill: ^2.3.0
+  # Sign in with Apple (iOS App Store compliance; native ID-token flow).
+  # Pinned to 7.x: 8.x requires Dart >=3.11 (project SDK floor is 3.8).
+  sign_in_with_apple: ^7.0.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -75,6 +85,7 @@ dev_dependencies:
   json_serializable: ^6.7.1
   import_sorter: ^4.6.0
   flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.4
 
 dependency_overrides:
   # Keep the Firebase core pinned to the current major to align with other Firebase SDKs.
@@ -91,3 +102,22 @@ flutter_icons:
   android: true
   ios: true
   image_path: "assets/icons/app_icon.png"
+
+# Native launch screen configuration.
+# Background colors match the app's first Flutter frame (Scaffold background)
+# to avoid a color flash on cold start:
+#   light -> AppDesignTokens.neutral50  (0xFFF9FAFB)
+#   dark  -> AppDesignTokens.neutral900 (0xFF121417)
+flutter_native_splash:
+  color: "f9fafb"
+  image: assets/icons/app_icon.png
+  color_dark: "121417"
+  image_dark: assets/icons/app_icon.png
+  ios: true
+  android: true
+  web: false
+  android_12:
+    color: "f9fafb"
+    image: assets/icons/app_icon.png
+    color_dark: "121417"
+    image_dark: assets/icons/app_icon.png

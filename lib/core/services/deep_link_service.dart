@@ -7,6 +7,8 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:ghar360/core/routes/app_routes.dart';
 import 'package:ghar360/core/utils/debug_logger.dart';
+import 'package:ghar360/core/utils/error_handler.dart';
+import 'package:ghar360/features/auth/data/auth_repository.dart';
 
 class DeepLinkService extends GetxService {
   StreamSubscription? _sub;
@@ -53,10 +55,21 @@ class DeepLinkService extends GetxService {
   void _handleDeepLink(Uri uri) {
     DebugLogger.info('🔗 Received Deep Link: $uri');
 
+    // OAuth redirect (Supabase Google redirect flow): exchange for a session.
+    // Supabase is initialized with detectSessionInUri: false, so we do this
+    // explicitly here. The onAuthStateChange listener then drives routing.
+    if (Get.isRegistered<AuthRepository>()) {
+      final authRepository = Get.find<AuthRepository>();
+      if (authRepository.isOAuthRedirectUri(uri)) {
+        _handleOAuthRedirect(authRepository, uri);
+        return;
+      }
+    }
+
     // Parse path segments to find property ID
     // Supports:
-    // 1. https://ghar.sale/p/123 (short link from _redirects)
-    // 2. https://ghar.sale/property/123
+    // 1. https://the360ghar.com/p/123 (short link from _redirects)
+    // 2. https://the360ghar.com/property/123
 
     String? propertyId;
 
@@ -72,6 +85,17 @@ class DeepLinkService extends GetxService {
       _navigateToProperty(propertyId);
     } else {
       DebugLogger.warning('🔗 Could not parse Property ID from: $uri');
+    }
+  }
+
+  Future<void> _handleOAuthRedirect(AuthRepository authRepository, Uri uri) async {
+    DebugLogger.info('🔗 Handling OAuth redirect callback');
+    try {
+      await authRepository.completeOAuthFromUri(uri);
+      // Session established; AuthController.onAuthStateChange drives routing.
+    } catch (e, st) {
+      DebugLogger.error('Failed to complete OAuth redirect', e, st);
+      ErrorHandler.handleAuthError(e);
     }
   }
 

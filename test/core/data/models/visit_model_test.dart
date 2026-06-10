@@ -9,7 +9,7 @@ void main() {
         'id': 1,
         'property_id': 100,
         'user_id': 50,
-        'status': 'scheduled',
+        'status': 'requested',
         'created_at': '2025-01-15T10:00:00.000Z',
         ...{'visit_date': visitDate, 'visit_time': visitTime, 'scheduled_date': scheduledDate}
           ..removeWhere((k, v) => v == null),
@@ -73,13 +73,36 @@ void main() {
       expect(model.scheduledDate.isBefore(after.add(const Duration(seconds: 1))), true);
     });
 
-    test('parses all status enum values', () {
-      for (final status in ['scheduled', 'confirmed', 'completed', 'cancelled', 'rescheduled']) {
+    test('parses all backend status wire values', () {
+      const wireToStatus = {
+        'requested': VisitStatus.scheduled,
+        'confirmed': VisitStatus.confirmed,
+        'completed': VisitStatus.completed,
+        'cancelled': VisitStatus.cancelled,
+        'reschedule_suggested': VisitStatus.rescheduled,
+      };
+      wireToStatus.forEach((wire, expected) {
         final json = baseJson(scheduledDate: '2025-06-01T10:00:00.000Z');
-        json['status'] = status;
+        json['status'] = wire;
         final model = VisitModel.fromJson(json);
-        expect(model.status.name, status);
-      }
+        expect(model.status, expected, reason: 'wire value: $wire');
+      });
+    });
+
+    test('falls back to scheduled on unknown status values', () {
+      final json = baseJson(scheduledDate: '2025-06-01T10:00:00.000Z');
+      json['status'] = 'some_future_status';
+      final model = VisitModel.fromJson(json);
+      expect(model.status, VisitStatus.scheduled);
+    });
+
+    test('parses nested agents object with nullable phone', () {
+      final json = baseJson(scheduledDate: '2025-06-01T10:00:00.000Z');
+      json['agents'] = {'id': 7, 'name': 'Ravi', 'phone': null, 'avatar_url': null};
+      final model = VisitModel.fromJson(json);
+      expect(model.agents?.name, 'Ravi');
+      expect(model.agentName, 'Ravi');
+      expect(model.agentPhone, '');
     });
 
     test('parses optional fields correctly', () {
