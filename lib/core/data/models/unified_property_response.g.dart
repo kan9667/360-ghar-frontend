@@ -20,6 +20,7 @@ UnifiedPropertyResponse _$UnifiedPropertyResponseFromJson(Map<String, dynamic> j
       searchCenter: json['search_center'] == null
           ? null
           : SearchCenter.fromJson(json['search_center'] as Map<String, dynamic>),
+      total: (json['total'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$UnifiedPropertyResponseToJson(UnifiedPropertyResponse instance) =>
@@ -30,6 +31,7 @@ Map<String, dynamic> _$UnifiedPropertyResponseToJson(UnifiedPropertyResponse ins
       'has_more': instance.hasMore,
       'filters_applied': instance.filtersApplied,
       'search_center': instance.searchCenter?.toJson(),
+      'total': instance.total,
     };
 
 SearchCenter _$SearchCenterFromJson(Map<String, dynamic> json) => SearchCenter(

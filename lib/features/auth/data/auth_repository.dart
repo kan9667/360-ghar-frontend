@@ -74,7 +74,7 @@ class AuthRepository extends GetxService {
   }
 
   /// Records the last-used auth method on the backend via
-  /// `POST /api/v1/auth/last-method` (auth Bearer, returns 204) and mirrors it
+  /// `POST /api/v1/auth/last-method` (auth Bearer, returns MessageResponse) and mirrors it
   /// into local storage. Failures are swallowed (best-effort, non-blocking).
   Future<void> recordLastMethod(AuthMethod method, {String? identifier}) async {
     _lastAuthMethodStore.save(method, identifier: identifier);

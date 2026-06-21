@@ -20,6 +20,7 @@ class UnifiedPropertyResponse {
   final Map<String, dynamic> filtersApplied;
   @JsonKey(name: 'search_center')
   final SearchCenter? searchCenter;
+  final int? total;
 
   const UnifiedPropertyResponse({
     this.items = const [],
@@ -28,6 +29,7 @@ class UnifiedPropertyResponse {
     this.hasMore = false,
     this.filtersApplied = const <String, dynamic>{},
     this.searchCenter,
+    this.total,
   });
 
   factory UnifiedPropertyResponse.fromJson(Map<String, dynamic> json) =>
