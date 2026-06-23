@@ -44,8 +44,7 @@ void main() async {
 
       // Initialize Supabase (REQUIRED for app authentication/session handling)
       final supabaseUrl = (dotenv.env['SUPABASE_URL'] ?? '').trim();
-      final supabaseClientKey =
-          (dotenv.env['SUPABASE_PUBLISHABLE_KEY'] ?? dotenv.env['SUPABASE_ANON_KEY'] ?? '').trim();
+      final supabaseClientKey = (dotenv.env['SUPABASE_PUBLISHABLE_KEY'] ?? '').trim();
       if (supabaseUrl.isEmpty || supabaseClientKey.isEmpty) {
         throw StateError(
           'Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY. '
