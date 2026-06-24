@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-
 import 'package:get/get.dart';
-
 import 'package:ghar360/core/controllers/page_state_service.dart';
 import 'package:ghar360/core/data/models/unified_filter_model.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
@@ -26,6 +24,7 @@ class PropertyFilterWidget extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: AppDesign.transparent,
+      useSafeArea: true,
       builder: (context) =>
           _FilterBottomSheet(pageType: pageType, onFiltersApplied: onFiltersApplied),
     );
@@ -645,52 +644,54 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
   }
 
   Widget _buildActionButtons() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: AppDesign.border, width: 0.2)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: _clearFilters,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                side: const BorderSide(color: AppDesign.primaryYellow),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text(
-                'clear_filters'.tr,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppDesign.primaryYellow,
-                  fontWeight: FontWeight.w600,
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: AppDesign.border, width: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _clearFilters,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: const BorderSide(color: AppDesign.primaryYellow),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(
+                  'clear_filters'.tr,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppDesign.primaryYellow,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton(
-              onPressed: _applyFilters,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppDesign.primaryYellow,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text(
-                'apply_filters'.tr,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppDesign.surface,
-                  fontWeight: FontWeight.w600,
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton(
+                onPressed: _applyFilters,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppDesign.primaryYellow,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(
+                  'apply_filters'.tr,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppDesign.surface,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -840,6 +841,7 @@ void showPropertyFilterBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: AppDesign.transparent,
+    useSafeArea: true,
     builder: (ctx) => _FilterBottomSheet(pageType: pageType, onFiltersApplied: onFiltersApplied),
   );
 }
