@@ -1,7 +1,5 @@
 import 'package:flutter/widgets.dart';
-
 import 'package:get/get.dart';
-
 import 'package:ghar360/core/controllers/auth_controller.dart';
 import 'package:ghar360/core/controllers/offline_queue_service.dart';
 import 'package:ghar360/core/data/models/agent_model.dart';
@@ -17,8 +15,8 @@ import 'package:ghar360/features/visits/data/datasources/visits_remote_datasourc
 class VisitsController extends GetxController {
   static const int _visitPageSize = 25;
 
-  late final VisitsRemoteDatasource _visitsRemoteDatasource;
-  late final AuthController _authController;
+  late VisitsRemoteDatasource _visitsRemoteDatasource;
+  late AuthController _authController;
 
   final RxList<VisitModel> visits = <VisitModel>[].obs;
   final RxList<VisitModel> upcomingVisitsList = <VisitModel>[].obs;
