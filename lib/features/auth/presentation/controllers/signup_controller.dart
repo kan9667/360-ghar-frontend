@@ -200,7 +200,14 @@ class SignUpController extends GetxController with OtpResendTimer {
         ErrorHandler.handleAuthError(e);
         Get.offNamed(
           AppRoutes.login,
-          arguments: {'identifier': identifier.value, 'channel': channel.value.name},
+          arguments: {
+            'identifier': identifier.value,
+            'channel': channel.value.name,
+            'next_step': 'password',
+            'exists': true,
+            'has_password': true,
+            'verified': false,
+          },
         );
         return;
       }
@@ -264,7 +271,7 @@ class SignUpController extends GetxController with OtpResendTimer {
       if (isEmailSignup) {
         await _authRepository.signUpWithEmailOtp(id);
       } else {
-        await _authRepository.signUpWithPhonePassword(id, passwordController.text);
+        await _authRepository.sendPhoneOtp(id);
       }
       startOtpCountdown();
       AppToast.success('otp_sent'.tr, 'otp_resent_message'.tr);

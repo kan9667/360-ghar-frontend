@@ -17,8 +17,11 @@ import 'package:ghar360/features/visits/data/datasources/visits_remote_datasourc
 class VisitsController extends GetxController {
   static const int _visitPageSize = 25;
 
-  late final VisitsRemoteDatasource _visitsRemoteDatasource;
-  late final AuthController _authController;
+  // Resolved lazily on access (not stored in late-final fields) so the
+  // controller's lifecycle can never crash with a double-initialization if
+  // GetX re-runs onInit() on a cached-but-uninitialized instance.
+  VisitsRemoteDatasource get _visitsRemoteDatasource => Get.find<VisitsRemoteDatasource>();
+  AuthController get _authController => Get.find<AuthController>();
 
   final RxList<VisitModel> visits = <VisitModel>[].obs;
   final RxList<VisitModel> upcomingVisitsList = <VisitModel>[].obs;
@@ -46,11 +49,10 @@ class VisitsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _visitsRemoteDatasource = Get.find<VisitsRemoteDatasource>();
-    _authController = Get.find<AuthController>();
 
-    // Listen to authentication state changes
-    _authStatusWorker = ever(_authController.authStatus, (authStatus) {
+    // Listen to authentication state changes (guarded so a re-entrant onInit
+    // can never register duplicate workers).
+    _authStatusWorker ??= ever(_authController.authStatus, (authStatus) {
       if (_authController.isAuthenticated) {
         // User is authenticated, safe to fetch data
         _initializeController();
@@ -66,7 +68,8 @@ class VisitsController extends GetxController {
     }
 
     // Observe dashboard tab switches to refresh when Visits tab is active
-    if (Get.isRegistered<DashboardController>()) {
+    // (guarded so a re-entrant onInit can never register a duplicate worker).
+    if (_tabActivationWorker == null && Get.isRegistered<DashboardController>()) {
       final dash = Get.find<DashboardController>();
       DateTime? lastRefresh;
 
@@ -106,6 +109,7 @@ class VisitsController extends GetxController {
   void _clearAllData() {
     visits.clear();
     upcomingVisitsList.clear();
+    pastVisitsList.clear();
     relationshipManager.value = null;
     error.value = null;
     hasLoadedVisits.value = false;
@@ -494,6 +498,11 @@ class VisitsController extends GetxController {
   // which surfaces an "auth required" toast if not signed in.
 
   Future<bool> cancelVisit(dynamic visitId, {required String reason}) async {
+    if (!_authController.isAuthenticated) {
+      AppToast.warning('auth_required'.tr, 'login_to_cancel_visit'.tr);
+      return false;
+    }
+
     final visitIdInt = visitId is int ? visitId : int.tryParse(visitId.toString()) ?? 0;
     final visitIndex = visits.indexWhere((visit) => visit.id == visitIdInt);
     if (visitIndex == -1) return false;
@@ -532,6 +541,11 @@ class VisitsController extends GetxController {
   }
 
   Future<bool> rescheduleVisit(dynamic visitId, DateTime newDateTime, {String? reason}) async {
+    if (!_authController.isAuthenticated) {
+      AppToast.warning('auth_required'.tr, 'login_to_cancel_visit'.tr);
+      return false;
+    }
+
     final visitIdInt = visitId is int ? visitId : int.tryParse(visitId.toString()) ?? 0;
     final visitIndex = visits.indexWhere((visit) => visit.id == visitIdInt);
     if (visitIndex == -1) return false;
@@ -642,7 +656,9 @@ class VisitsController extends GetxController {
 
   String formatVisitDate(DateTime dateTime) {
     final now = DateTime.now();
-    final difference = dateTime.difference(now).inDays;
+    final today = DateTime(now.year, now.month, now.day);
+    final visitDay = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    final difference = visitDay.difference(today).inDays;
 
     if (difference == 0) {
       return 'today'.tr;

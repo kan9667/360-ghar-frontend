@@ -12,12 +12,12 @@ class PropertyDetailsController extends GetxController {
   final RxnString errorKey = RxnString();
   final RxnString errorDetail = RxnString();
 
-  late final PropertiesRepository _propertiesRepository;
+  // Resolved lazily on access so onInit() can never crash on a re-init.
+  PropertiesRepository get _propertiesRepository => Get.find<PropertiesRepository>();
 
   @override
   void onInit() {
     super.onInit();
-    _propertiesRepository = Get.find<PropertiesRepository>();
     // VisitsController may not be registered when deep-linking directly to a
     // property (it is registered by the dashboard binding). Guard against its
     // absence so the property details screen still loads.
@@ -90,6 +90,10 @@ class PropertyDetailsController extends GetxController {
     }
 
     _setError('property_not_found');
+  }
+
+  void retry() {
+    _resolveProperty();
   }
 
   void _setError(String key) {

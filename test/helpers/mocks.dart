@@ -15,6 +15,7 @@
 import 'package:get/get.dart';
 import 'package:ghar360/core/controllers/auth_controller.dart';
 import 'package:ghar360/core/controllers/location_controller.dart';
+import 'package:ghar360/core/controllers/page_state_service.dart';
 import 'package:ghar360/core/data/models/agent_model.dart';
 import 'package:ghar360/core/data/models/property_image_model.dart';
 import 'package:ghar360/core/data/models/property_model.dart';
@@ -23,6 +24,9 @@ import 'package:ghar360/core/data/models/unified_property_response.dart';
 import 'package:ghar360/core/data/models/user_model.dart';
 import 'package:ghar360/core/data/models/visit_model.dart';
 import 'package:ghar360/core/network/api_client.dart';
+import 'package:ghar360/core/network/sse_client.dart';
+import 'package:ghar360/core/services/google_places_service.dart';
+import 'package:ghar360/features/assistant/data/assistant_repository.dart';
 import 'package:ghar360/features/auth/data/auth_repository.dart';
 import 'package:ghar360/features/notifications/data/datasources/notifications_remote_datasource.dart';
 import 'package:ghar360/features/profile/data/profile_repository.dart';
@@ -83,8 +87,8 @@ class MockAuthRepository extends GetxServiceMock implements AuthRepository {}
 // ---------------------------------------------------------------------------
 
 /// Mock for [ProfileRepository]. Covers: updateUserProfile, updateUserLocation,
-/// updateUserPreferences, getCurrentUserProfile, calculateProfileCompletion,
-/// isProfileComplete, updateProfileField, updateProfileImage.
+/// updateUserPreferences, getCurrentUserProfile, isProfileComplete,
+/// updateProfileField, updateProfileImage.
 class MockProfileRepository extends GetxServiceMock implements ProfileRepository {}
 
 // ---------------------------------------------------------------------------
@@ -139,6 +143,17 @@ class MockSwipesRemoteDatasource extends Mock implements SwipesRemoteDatasource 
 /// constructed with an [ApiClient]. Required because [AuthController]'s field
 /// initializers `Get.find` it at construction time.
 class MockNotificationsRemoteDatasource extends Mock implements NotificationsRemoteDatasource {}
+
+// ---------------------------------------------------------------------------
+// Assistant
+// ---------------------------------------------------------------------------
+
+/// Mock for [AssistantRepository]. Covers: streamChat, getConversations,
+/// getConversationMessages, getWidgetHtml, deleteConversation.
+class MockAssistantRepository extends Mock implements AssistantRepository {}
+
+/// Mock for [SseClient]. Covers: postStream.
+class MockSseClient extends Mock implements SseClient {}
 
 // ---------------------------------------------------------------------------
 // Lightweight value factories used by tests to seed mock return values.
@@ -224,3 +239,9 @@ AgentModel testAgentModel({int id = 1}) {
     createdAt: DateTime(2024, 1, 1),
   );
 }
+
+/// Mock for [PageStateService]. Covers: updateLocation, updateLocationForPage.
+class MockPageStateService extends GetxServiceMock implements PageStateService {}
+
+/// Mock for [GooglePlacesService]. Covers: getPlaceSuggestions, getPlaceDetails.
+class MockGooglePlacesService extends GetxServiceMock implements GooglePlacesService {}

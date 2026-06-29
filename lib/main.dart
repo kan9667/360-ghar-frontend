@@ -39,6 +39,7 @@ void main() async {
         final envFile = kReleaseMode ? '.env.production' : '.env.development';
         await dotenv.load(fileName: envFile);
       } catch (e) {
+        DebugLogger.warning('Failed to load .env file', e);
         // Continue without .env file - will use defaults
       }
 

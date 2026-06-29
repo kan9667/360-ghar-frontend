@@ -24,6 +24,16 @@ class AuthMiddleware extends GetMiddleware {
     final authController = Get.find<AuthController>();
     final currentStatus = authController.authStatus.value;
 
+    // If the user needs to set a password, redirect to password setup
+    // unless they're already on that route.
+    if (currentStatus == AuthStatus.requiresPasswordSetup) {
+      if (route == AppRoutes.setPassword) {
+        return null; // Already on password setup page
+      }
+      DebugLogger.info('🔒 User requires password setup, redirecting from $route');
+      return const RouteSettings(name: AppRoutes.setPassword);
+    }
+
     // If the user is fully authenticated, allow access.
     if (currentStatus == AuthStatus.authenticated) {
       return null;

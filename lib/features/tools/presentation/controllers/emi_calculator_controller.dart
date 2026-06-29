@@ -11,6 +11,7 @@ class EmiCalculatorController extends GetxController {
 
   final RxBool tenureInYears = true.obs;
   final RxBool hasCalculated = false.obs;
+  final RxString validationError = ''.obs;
 
   // Results
   final RxDouble monthlyEmi = 0.0.obs;
@@ -23,9 +24,12 @@ class EmiCalculatorController extends GetxController {
     final tenure = int.tryParse(tenureController.text) ?? 0;
 
     if (principal <= 0 || annualRate <= 0 || tenure <= 0) {
+      validationError.value = 'please_enter_valid_amounts'.tr;
       hasCalculated.value = false;
       return;
     }
+
+    validationError.value = '';
 
     final months = tenureInYears.value ? tenure * 12 : tenure;
     final monthlyRate = annualRate / 12 / 100;
@@ -53,6 +57,7 @@ class EmiCalculatorController extends GetxController {
     tenureController.clear();
     tenureInYears.value = true;
     hasCalculated.value = false;
+    validationError.value = '';
     monthlyEmi.value = 0;
     totalInterest.value = 0;
     totalPayment.value = 0;

@@ -43,6 +43,7 @@ class ApiPaths {
   static const String usersProfile = '/users/profile';
   static const String usersLocation = '/users/location';
   static const String usersPreferences = '/users/preferences';
+  static const String usersAvatar = '/users/me/avatar';
 
   // Upload
   static const String upload = '/upload';

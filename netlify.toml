@@ -1,0 +1,16 @@
+# Netlify configuration for the ghar360 Flutter web app.
+# Netlify builds the app itself (see netlify-build.sh) and hosts build/web.
+# Secrets are configured in the Netlify dashboard (Environment variables),
+# scoped to Production and Deploy previews.
+
+[build]
+  command = "bash netlify-build.sh"
+  publish = "build/web"
+
+# SPA fallback: GetX uses client-side named routes, so any deep link or page
+# reload must serve index.html. status 200 (rewrite) and non-forced, so real
+# asset files (flutter.js, CanvasKit, etc.) are served before the fallback.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

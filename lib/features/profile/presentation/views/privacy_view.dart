@@ -334,6 +334,10 @@ class PrivacyView extends StatelessWidget with ThemeMixin {
 
                       try {
                         final authRepository = Get.find<AuthRepository>();
+                        // TODO: The current password is collected above but never verified.
+                        // Supabase's updateUser only requires a valid session, not the old
+                        // password. Ideally the backend should verify currentPassword before
+                        // allowing a change, but that requires a backend API change.
                         await authRepository.updateUserPassword(newPasswordController.text);
                         Get.back();
                         AppToast.success('success'.tr, 'password_updated_successfully'.tr);

@@ -11,16 +11,11 @@ import 'package:ghar360/core/data/models/user_model.dart';
 /// the current user), but profile actions (refresh, sign out) are surfaced
 /// here with their own loading flag.
 class ProfileController extends GetxController {
-  late final AuthController _authController;
+  // Resolved lazily on access so onInit() can never crash on a re-init.
+  AuthController get _authController => Get.find<AuthController>();
 
   /// Profile-specific loading flag (e.g. for refresh / sign-out actions).
   final RxBool isProfileLoading = false.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    _authController = Get.find<AuthController>();
-  }
 
   /// The current user (reactive). Delegates to AuthController so profile
   /// updates propagate to the UI without duplicating user state.

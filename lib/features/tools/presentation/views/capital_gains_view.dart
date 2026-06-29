@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:ghar360/core/design/app_design_extensions.dart';
+import 'package:ghar360/core/widgets/common/error_states.dart';
 import 'package:ghar360/features/tools/presentation/controllers/capital_gains_controller.dart';
 
 class CapitalGainsView extends GetView<CapitalGainsController> {
@@ -81,6 +82,15 @@ class CapitalGainsView extends GetView<CapitalGainsController> {
                     ),
                     const SizedBox(height: 16),
                     _buildYearDropdown(label: 'purchase_year'.tr, value: controller.purchaseYear),
+                    const SizedBox(height: 8),
+                    Text(
+                      'holding_period_approximation_note'.tr,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppDesign.textTertiary,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _buildTextField(
                       label: 'improvement_cost'.tr,
@@ -122,6 +132,15 @@ class CapitalGainsView extends GetView<CapitalGainsController> {
               ),
             ),
             const SizedBox(height: 16),
+            Obx(() {
+              if (controller.validationError.value.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: ErrorStates.inlineError(message: controller.validationError.value),
+              );
+            }),
             SizedBox(
               width: double.infinity,
               child: Semantics(

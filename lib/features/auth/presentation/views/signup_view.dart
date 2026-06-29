@@ -400,7 +400,10 @@ class SignUpView extends GetView<SignUpController> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(onPressed: controller.previousStep, child: Text('back'.tr)),
+                child: OutlinedButton(
+                  onPressed: controller.isLoading.value ? null : controller.previousStep,
+                  child: Text('back'.tr),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -81,31 +81,6 @@ class ProfileRepository extends GetxService {
     }
   }
 
-  /// Calculates the profile completion percentage
-  int calculateProfileCompletion(UserModel user) {
-    // Create a list of completion conditions for each field
-    final completionChecks = [
-      user.fullName?.isNotEmpty == true,
-      user.email.isNotEmpty,
-      user.phone?.isNotEmpty == true,
-      user.dateOfBirth?.isNotEmpty == true,
-      user.profileImageUrl?.isNotEmpty == true,
-      // Add more profile field checks as needed
-      // Example additional fields:
-      // user.address?.isNotEmpty == true,
-      // user.city?.isNotEmpty == true,
-      // user.occupation?.isNotEmpty == true,
-      // user.bio?.isNotEmpty == true,
-      // user.preferences != null,
-    ];
-
-    // Count the number of true conditions
-    final completed = completionChecks.where((check) => check).length;
-    final total = completionChecks.length;
-
-    return ((completed / total) * 100).round();
-  }
-
   /// Checks if the user profile is complete based on required fields
   bool isProfileComplete(UserModel user) {
     return user.isProfileComplete;
@@ -117,19 +92,25 @@ class ProfileRepository extends GetxService {
   }
 
   /// Uploads and updates user profile image
+  /// Uploads a local image file as the user's avatar and returns the updated
+  /// user. The backend `/users/me/avatar` endpoint stores the file (converting
+  /// to WebP) and returns the user with the new `profile_image_url`.
   Future<UserModel> updateProfileImage(String imagePath) async {
     try {
-      DebugLogger.info('📸 Updating user profile image');
-      // This would typically involve uploading the image first, then updating the profile
-      // For now, we'll assume the imagePath is already a URL or the API handles the upload
-      final updatedUser = await updateUserProfile({'profile_image_url': imagePath});
-      DebugLogger.success('✅ Profile image updated successfully');
+      DebugLogger.info('📸 Uploading user profile image');
+      final response = await _apiClient.upload(
+        ApiPaths.usersAvatar,
+        field: 'file',
+        filePath: imagePath,
+      );
+      final updatedUser = _parseUser(response.body);
+      DebugLogger.success('✅ Profile image uploaded successfully');
       return updatedUser;
     } on AppException catch (e, stackTrace) {
-      DebugLogger.error('❌ Failed to update profile image: ${e.message}', e, stackTrace);
+      DebugLogger.error('❌ Failed to upload profile image: ${e.message}', e, stackTrace);
       rethrow;
     } catch (e, stackTrace) {
-      DebugLogger.error('Unexpected error updating profile image: $e', e, stackTrace);
+      DebugLogger.error('Unexpected error uploading profile image: $e', e, stackTrace);
       rethrow;
     }
   }

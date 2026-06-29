@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:ghar360/core/data/models/property_image_model.dart';
 import 'package:ghar360/core/data/models/property_model.dart';
 import 'package:ghar360/core/network/api_client.dart';
 import 'package:ghar360/core/network/api_paths.dart';
+import 'package:ghar360/core/utils/app_toast.dart';
 import 'package:ghar360/core/utils/debug_logger.dart';
 import 'package:ghar360/features/properties/data/properties_repository.dart';
 import 'package:image_picker/image_picker.dart';
@@ -50,6 +52,10 @@ class MediaUploadService {
     final ext = _fileExtension(file.path, fallback: 'jpg');
     if (!_allowedImageExtensions.contains(ext)) {
       DebugLogger.warning('Rejected image with disallowed extension: $ext');
+      AppToast.warning(
+        'invalid_image_format'.tr,
+        'unsupported_image_extension'.trParams({'ext': ext}),
+      );
       return null;
     }
 
@@ -59,6 +65,7 @@ class MediaUploadService {
         'Rejected image exceeding size limit: '
         '${(bytes.lengthInBytes / 1024 / 1024).toStringAsFixed(1)} MB',
       );
+      AppToast.warning('image_too_large'.tr, 'image_size_limit_exceeded'.tr);
       return null;
     }
 
@@ -106,6 +113,10 @@ class MediaUploadService {
     final rawExt = _fileExtension(file.path, fallback: 'mp4');
     if (!_allowedVideoExtensions.contains(rawExt)) {
       DebugLogger.warning('Rejected video with disallowed extension: $rawExt');
+      AppToast.warning(
+        'invalid_video_format'.tr,
+        'unsupported_video_extension'.trParams({'ext': rawExt}),
+      );
       return null;
     }
 
@@ -133,6 +144,7 @@ class MediaUploadService {
         'Rejected video exceeding size limit: '
         '${(uploadBytes.lengthInBytes / 1024 / 1024).toStringAsFixed(1)} MB',
       );
+      AppToast.warning('video_too_large'.tr, 'video_size_limit_exceeded'.tr);
       return null;
     }
 

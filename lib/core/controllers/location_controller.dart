@@ -12,7 +12,8 @@ import 'package:ghar360/core/utils/debug_logger.dart';
 import 'package:http/http.dart' as http;
 
 class LocationController extends GetxController {
-  late final AuthController _authController;
+  // Resolved lazily on access so onInit() can never crash on a re-init.
+  AuthController get _authController => Get.find<AuthController>();
 
   final Rxn<Position> currentPosition = Rxn<Position>();
   final RxBool isLocationEnabled = false.obs;
@@ -42,18 +43,11 @@ class LocationController extends GetxController {
   static const double _geocodeMinDistanceMeters = 100;
   static const int _streamDistanceFilterMeters = 25;
 
-  // Google Places — delegated to GooglePlacesService
-  late final GooglePlacesService _placesService;
+  // Google Places — delegated to GooglePlacesService (resolved lazily).
+  GooglePlacesService get _placesService => Get.find<GooglePlacesService>();
 
   RxList<PlaceSuggestion> get placeSuggestions => _placesService.placeSuggestions;
   RxBool get isSearchingPlaces => _placesService.isSearchingPlaces;
-
-  @override
-  void onInit() {
-    super.onInit();
-    _authController = Get.find<AuthController>();
-    _placesService = Get.find<GooglePlacesService>();
-  }
 
   // IP-based location fallback
   Future<LocationData?> getIpLocation() async {

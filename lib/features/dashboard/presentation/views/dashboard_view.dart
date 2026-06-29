@@ -24,13 +24,25 @@ class DashboardView extends GetView<DashboardController> {
           identifier: 'qa.dashboard.indexed_stack',
           child: IndexedStack(
             index: idx.value,
-            children: const [
-              ProfileView(), // 0 - Profile
-              ExploreView(), // 1 - Explore (Map)
-              DiscoverView(), // 2 - Discover (Swipe)
-              LikesView(), // 3 - Likes
-              VisitsView(), // 4 - Visits
-              AssistantView(), // 5 - AI Assistant
+            children: [
+              controller.visitedTabs.contains(0)
+                  ? const ProfileView()
+                  : const SizedBox.shrink(), // 0 - Profile
+              controller.visitedTabs.contains(1)
+                  ? const ExploreView()
+                  : const SizedBox.shrink(), // 1 - Explore (Map)
+              controller.visitedTabs.contains(2)
+                  ? const DiscoverView()
+                  : const SizedBox.shrink(), // 2 - Discover (Swipe)
+              controller.visitedTabs.contains(3)
+                  ? const LikesView()
+                  : const SizedBox.shrink(), // 3 - Likes
+              controller.visitedTabs.contains(4)
+                  ? const VisitsView()
+                  : const SizedBox.shrink(), // 4 - Visits
+              controller.visitedTabs.contains(5)
+                  ? const AssistantView()
+                  : const SizedBox.shrink(), // 5 - AI Assistant
             ],
           ),
         ),

@@ -105,6 +105,10 @@ class LocationSearchView extends GetView<LocationSearchController> {
         return const Center(child: CircularProgressIndicator());
       }
 
+      if (controller.searchError.value.isNotEmpty) {
+        return _buildErrorState(context);
+      }
+
       final suggestions = locationController.placeSuggestions;
 
       if (suggestions.isEmpty && controller.searchQuery.value.isNotEmpty) {
@@ -140,6 +144,21 @@ class LocationSearchView extends GetView<LocationSearchController> {
           Icon(Icons.search_off, size: 64, color: Theme.of(context).disabledColor),
           const SizedBox(height: 16),
           Text('no_locations_found'.tr, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text('try_search_different_location'.tr, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Theme.of(context).colorScheme.error),
+          const SizedBox(height: 16),
+          Text(controller.searchError.value, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text('try_search_different_location'.tr, style: Theme.of(context).textTheme.bodySmall),
         ],

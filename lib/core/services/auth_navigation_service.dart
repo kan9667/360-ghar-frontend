@@ -88,7 +88,7 @@ class AuthNavigationService extends GetxService {
   void navigateToRedirectRoute() {
     final authController = Get.find<AuthController>();
     final route = authController.redirectRoute.value;
-    if (route != null) {
+    if (route != null && route.name != null) {
       DebugLogger.info('🔄 Navigating to stored redirect route: ${route.name}');
       Get.offAllNamed(route.name!, arguments: route.arguments);
       authController.redirectRoute.value = null;

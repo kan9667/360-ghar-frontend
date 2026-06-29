@@ -183,12 +183,9 @@ class AuthController extends GetxController {
       );
       currentUser.value = null;
       _setAuthResolving(false);
-      // Delay to allow stream listener to handle state first
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (authStatus.value != AuthStatus.unauthenticated) {
-          authStatus.value = AuthStatus.unauthenticated;
-        }
-      });
+      if (authStatus.value != AuthStatus.unauthenticated) {
+        authStatus.value = AuthStatus.unauthenticated;
+      }
     } finally {
       _isHandlingUnauthorized = false;
     }
@@ -537,8 +534,7 @@ class AuthController extends GetxController {
       );
 
       // After updating, re-evaluate the auth status.
-      if (updatedUser.isProfileComplete &&
-          authStatus.value == AuthStatus.requiresProfileCompletion) {
+      if (updatedUser.isProfileComplete && authStatus.value != AuthStatus.authenticated) {
         authStatus.value = AuthStatus.authenticated;
       }
 

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:ghar360/core/controllers/page_state_service.dart';
-import 'package:ghar360/core/data/models/page_state_model.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/design/app_design_tokens.dart';
 import 'package:ghar360/core/utils/app_spacing.dart';
@@ -26,86 +25,81 @@ class ExploreView extends GetView<ExploreController> {
   Widget build(BuildContext context) {
     final pageStateService = Get.find<PageStateService>();
 
-    // Wrap in Obx to rebuild Scaffold when search visibility changes
-    return Obx(() {
-      final searchVisible = pageStateService.isSearchVisible(PageType.explore);
-      return Scaffold(
-        key: ValueKey('explore_scaffold_$searchVisible'),
-        backgroundColor: AppDesign.scaffoldBackground,
-        appBar: ExploreTopBar(
-          onSearchChanged: (query) => controller.updateSearchQuery(query),
-          onFilterTap: () => showPropertyFilterBottomSheet(context, pageType: 'explore'),
-        ),
-        body: Semantics(
-          label: 'qa.explore.screen',
-          identifier: 'qa.explore.screen',
-          child: Column(
-            children: [
-              // Subtle refresh indicator (reactive only)
-              Obx(() {
-                final isRefreshing = pageStateService.exploreState.value.isRefreshing;
-                if (!isRefreshing) return const SizedBox.shrink();
-                return const LinearProgressIndicator(
-                  minHeight: 2,
-                  backgroundColor: AppDesign.transparent,
-                  valueColor: AlwaysStoppedAnimation<Color>(AppDesign.primaryYellow),
-                );
-              }),
-              // Main content (reactive state switch with smooth fade)
-              Expanded(
-                child: Obx(() {
-                  final currentState = controller.state.value;
-                  final Widget child;
-                  final Key key;
+    return Scaffold(
+      backgroundColor: AppDesign.scaffoldBackground,
+      appBar: ExploreTopBar(
+        onSearchChanged: (query) => controller.updateSearchQuery(query),
+        onFilterTap: () => showPropertyFilterBottomSheet(context, pageType: 'explore'),
+      ),
+      body: Semantics(
+        label: 'qa.explore.screen',
+        identifier: 'qa.explore.screen',
+        child: Column(
+          children: [
+            // Subtle refresh indicator (reactive only)
+            Obx(() {
+              final isRefreshing = pageStateService.exploreState.value.isRefreshing;
+              if (!isRefreshing) return const SizedBox.shrink();
+              return const LinearProgressIndicator(
+                minHeight: 2,
+                backgroundColor: AppDesign.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(AppDesign.primaryYellow),
+              );
+            }),
+            // Main content (reactive state switch with smooth fade)
+            Expanded(
+              child: Obx(() {
+                final currentState = controller.state.value;
+                final Widget child;
+                final Key key;
 
-                  switch (currentState) {
-                    case ExploreState.loading:
-                      final hasLocation = pageStateService.exploreState.value.hasLocation;
-                      if (hasLocation) {
-                        key = const ValueKey('map');
-                        child = _buildMapInterface(context);
-                      } else {
-                        key = const ValueKey('loading');
-                        child = _buildLoadingState(context);
-                      }
-
-                    case ExploreState.error:
-                      key = const ValueKey('error');
-                      child = _buildErrorState();
-
-                    case ExploreState.empty:
-                      key = const ValueKey('empty');
-                      child = _buildEmptyState(context);
-
-                    case ExploreState.loaded:
-                    case ExploreState.loadingMore:
+                switch (currentState) {
+                  case ExploreState.loading:
+                    final hasLocation = pageStateService.exploreState.value.hasLocation;
+                    if (hasLocation) {
                       key = const ValueKey('map');
                       child = _buildMapInterface(context);
+                    } else {
+                      key = const ValueKey('loading');
+                      child = _buildLoadingState(context);
+                    }
 
-                    default:
-                      final hasLocation = pageStateService.exploreState.value.hasLocation;
-                      if (hasLocation) {
-                        key = const ValueKey('map');
-                        child = _buildMapInterface(context);
-                      } else {
-                        key = const ValueKey('loading');
-                        child = _buildLoadingState(context);
-                      }
-                  }
+                  case ExploreState.error:
+                    key = const ValueKey('error');
+                    child = _buildErrorState();
 
-                  return AnimatedSwitcher(
-                    duration: AppDurations.contentFade,
-                    transitionBuilder: (child, animation) =>
-                        FadeTransition(opacity: animation, child: child),
-                    child: KeyedSubtree(key: key, child: child),
-                  );
-                }),
-              ),
-            ],
-          ),
+                  case ExploreState.empty:
+                    key = const ValueKey('empty');
+                    child = _buildEmptyState(context);
+
+                  case ExploreState.loaded:
+                  case ExploreState.loadingMore:
+                    key = const ValueKey('map');
+                    child = _buildMapInterface(context);
+
+                  default:
+                    final hasLocation = pageStateService.exploreState.value.hasLocation;
+                    if (hasLocation) {
+                      key = const ValueKey('map');
+                      child = _buildMapInterface(context);
+                    } else {
+                      key = const ValueKey('loading');
+                      child = _buildLoadingState(context);
+                    }
+                }
+
+                return AnimatedSwitcher(
+                  duration: AppDurations.contentFade,
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: KeyedSubtree(key: key, child: child),
+                );
+              }),
+            ),
+          ],
         ),
-      );
-    });
+      ),
+    );
   }
 
   Widget _buildLoadingState(BuildContext context) {

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ghar360/core/data/models/property_model.dart';
@@ -327,7 +329,7 @@ class _Embedded360TourState extends State<_Embedded360Tour> {
           ),
         );
 
-      final sanitizedUrl = widget.tourUrl;
+      final sanitizedUrl = htmlEscape.convert(widget.tourUrl);
       final htmlContent =
           '''
       <!DOCTYPE html>

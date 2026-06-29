@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
@@ -508,11 +509,11 @@ class _PropertyContentViewState extends State<_PropertyContentView> {
                       context,
                       amenity.title,
                       leading: amenity.icon != null && amenity.icon!.startsWith('http')
-                          ? Image.network(
-                              amenity.icon!,
+                          ? CachedNetworkImage(
+                              imageUrl: amenity.icon!,
                               width: 16,
                               height: 16,
-                              errorBuilder: (context, error, stackTrace) => Icon(
+                              errorWidget: (context, url, error) => Icon(
                                 Icons.check_circle_outline,
                                 size: 16,
                                 color: AppDesign.textSecondary,
@@ -663,7 +664,7 @@ class _PropertyContentViewState extends State<_PropertyContentView> {
             (() {
               if (scheduledDate != null) {
                 final formatted =
-                    '${scheduledDate.day}/${scheduledDate.month}/${scheduledDate.year}';
+                    '${scheduledDate.day.toString().padLeft(2, '0')}/${scheduledDate.month.toString().padLeft(2, '0')}/${scheduledDate.year}';
                 return '${'visit_scheduled'.tr}: $formatted';
               }
               return 'visit_scheduled'.tr;
@@ -821,7 +822,31 @@ class _PropertyErrorScaffold extends StatelessWidget {
         ),
       ),
       body: Center(
-        child: Text(message, style: TextStyle(fontSize: 18, color: AppDesign.textSecondary)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: AppDesign.textSecondary),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: TextStyle(fontSize: 18, color: AppDesign.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => Get.find<PropertyDetailsController>().retry(),
+                icon: const Icon(Icons.refresh),
+                label: Text('retry'.tr),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppDesign.primaryYellow,
+                  foregroundColor: AppDesign.buttonText,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

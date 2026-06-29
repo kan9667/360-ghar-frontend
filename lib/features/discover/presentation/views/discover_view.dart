@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:ghar360/core/controllers/page_state_service.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/utils/app_spacing.dart';
-import 'package:ghar360/core/utils/error_mapper.dart';
 import 'package:ghar360/core/utils/responsive.dart';
 import 'package:ghar360/core/widgets/common/error_states.dart';
 import 'package:ghar360/core/widgets/common/loading_states.dart';
@@ -155,17 +154,7 @@ class DiscoverView extends GetView<DiscoverController> {
       final errorMessage = controller.error.value;
       if (errorMessage == null) return const SizedBox();
 
-      // Try to map the error for better user experience
-      try {
-        // Don't wrap in Exception() - pass the original error message directly
-        final exception = ErrorMapper.mapApiError(errorMessage);
-        return ErrorStates.genericError(error: exception, onRetry: controller.retryLoading);
-      } catch (e) {
-        return ErrorStates.networkError(
-          onRetry: controller.retryLoading,
-          customMessage: errorMessage.toString(),
-        );
-      }
+      return ErrorStates.genericError(error: errorMessage, onRetry: controller.retryLoading);
     });
   }
 

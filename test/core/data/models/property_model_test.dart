@@ -311,12 +311,66 @@ void main() {
       );
     });
 
+    test('formattedPrice handles very large values (100 Cr+)', () {
+      expect(make(basePrice: 1000000000).formattedPrice, '₹100.0 Cr');
+      expect(make(basePrice: 150000000).formattedPrice, '₹15.0 Cr');
+    });
+
+    test('formattedPrice handles zero price', () {
+      expect(make(basePrice: 0).formattedPrice, '₹0');
+    });
+
+    test('formattedPrice handles negative price', () {
+      // Negative values fall through to the small-value branch
+      expect(make(basePrice: -1000).formattedPrice, '₹-1000');
+      expect(make(basePrice: -5000000).formattedPrice, '₹-5000000');
+    });
+
+    test('virtualTourUrl and hasVirtualTour getters', () {
+      final withTour = const PropertyModel(
+        id: 1,
+        title: 'Test',
+        basePrice: 0,
+        virtualTourUrl: 'https://kuula.co/share/abc123',
+        isAvailable: true,
+        viewCount: 0,
+        likeCount: 0,
+        interestCount: 0,
+      );
+      expect(withTour.virtualTourUrl, 'https://kuula.co/share/abc123');
+      expect(withTour.hasVirtualTour, true);
+
+      final emptyTour = const PropertyModel(
+        id: 2,
+        title: 'Test',
+        basePrice: 0,
+        virtualTourUrl: '',
+        isAvailable: true,
+        viewCount: 0,
+        likeCount: 0,
+        interestCount: 0,
+      );
+      expect(emptyTour.hasVirtualTour, false);
+
+      final noTour = make();
+      expect(noTour.hasVirtualTour, false);
+    });
+
     test('wire value helpers use canonical backend tokens', () {
       expect(PropertyType.builderFloor.wireValue, 'builder_floor');
       expect(PropertyType.penthouse.wireValue, 'penthouse');
       expect(PropertyType.pg.wireValue, 'pg');
       expect(PropertyType.warehouse.wireValue, 'warehouse');
       expect(PropertyPurpose.shortStay.wireValue, 'short_stay');
+    });
+
+    test('shortAddressDisplay handles empty locality with subLocality', () {
+      expect(make(subLocality: 'Block B', city: 'Gurgaon').shortAddressDisplay, 'Block B, Gurgaon');
+    });
+
+    test('shortAddressDisplay ignores empty strings in parts', () {
+      expect(make(locality: '', city: 'Delhi').shortAddressDisplay, 'Delhi');
+      expect(make(locality: '', subLocality: '', city: 'Delhi').shortAddressDisplay, 'Delhi');
     });
 
     test('bedroomBathroomText handles combinations', () {

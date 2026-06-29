@@ -34,6 +34,7 @@ class SwipesRepository extends GetxService {
           await queue.enqueueSwipe(propertyId: propertyId, isLiked: isLiked);
         } catch (qErr) {
           DebugLogger.error('💥 Failed to enqueue swipe: $qErr');
+          rethrow;
         }
         return; // swallow network errors after enqueueing
       }

@@ -32,9 +32,12 @@ class _PropertyDetailsImageGalleryState extends State<PropertyDetailsImageGaller
   int _current = 0;
   bool _isPrefetching = false;
 
-  List<String> get _images => widget.property.galleryImageUrls.isNotEmpty
-      ? widget.property.galleryImageUrls
-      : [widget.property.mainImage];
+  List<String> get _images {
+    final urls = widget.property.galleryImageUrls.isNotEmpty
+        ? widget.property.galleryImageUrls
+        : [widget.property.mainImage];
+    return urls.where((url) => url.trim().isNotEmpty).toList();
+  }
 
   @override
   void initState() {
@@ -104,6 +107,14 @@ class _PropertyDetailsImageGalleryState extends State<PropertyDetailsImageGaller
   Widget build(BuildContext context) {
     final images = _images;
     final itemCount = images.isNotEmpty ? images.length : 1;
+
+    // Show placeholder when no valid image URLs exist
+    if (images.isEmpty) {
+      return Container(
+        color: AppDesign.inputBackground,
+        child: Center(child: Icon(Icons.image, size: 64, color: AppDesign.disabledColor)),
+      );
+    }
 
     final gallery = Stack(
       children: [

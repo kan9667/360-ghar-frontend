@@ -204,6 +204,46 @@ void main() {
       expect(make(status: VisitStatus.cancelled).statusString, 'visit_status_cancelled');
       expect(make(status: VisitStatus.rescheduled).statusString, 'visit_status_rescheduled');
     });
+
+    test('statusStringKey returns translation keys for all statuses', () {
+      expect(make(status: VisitStatus.scheduled).statusStringKey, 'visit_status_scheduled');
+      expect(make(status: VisitStatus.confirmed).statusStringKey, 'visit_status_confirmed');
+      expect(make(status: VisitStatus.completed).statusStringKey, 'visit_status_completed');
+      expect(make(status: VisitStatus.cancelled).statusStringKey, 'visit_status_cancelled');
+      expect(make(status: VisitStatus.rescheduled).statusStringKey, 'visit_status_rescheduled');
+    });
+
+    test('isCompleted is true only for completed status', () {
+      expect(make(status: VisitStatus.completed).isCompleted, true);
+      expect(make(status: VisitStatus.scheduled).isCompleted, false);
+      expect(make(status: VisitStatus.confirmed).isCompleted, false);
+      expect(make(status: VisitStatus.cancelled).isCompleted, false);
+      expect(make(status: VisitStatus.rescheduled).isCompleted, false);
+    });
+
+    test('isCancelled is true only for cancelled status', () {
+      expect(make(status: VisitStatus.cancelled).isCancelled, true);
+      expect(make(status: VisitStatus.scheduled).isCancelled, false);
+      expect(make(status: VisitStatus.confirmed).isCancelled, false);
+      expect(make(status: VisitStatus.completed).isCancelled, false);
+      expect(make(status: VisitStatus.rescheduled).isCancelled, false);
+    });
+
+    test('canReschedule is false for completed and cancelled, true otherwise', () {
+      expect(make(status: VisitStatus.scheduled).canReschedule, true);
+      expect(make(status: VisitStatus.confirmed).canReschedule, true);
+      expect(make(status: VisitStatus.rescheduled).canReschedule, true);
+      expect(make(status: VisitStatus.completed).canReschedule, false);
+      expect(make(status: VisitStatus.cancelled).canReschedule, false);
+    });
+
+    test('canCancel is false for completed and cancelled, true otherwise', () {
+      expect(make(status: VisitStatus.scheduled).canCancel, true);
+      expect(make(status: VisitStatus.confirmed).canCancel, true);
+      expect(make(status: VisitStatus.rescheduled).canCancel, true);
+      expect(make(status: VisitStatus.completed).canCancel, false);
+      expect(make(status: VisitStatus.cancelled).canCancel, false);
+    });
   });
 
   group('VisitModel.copyWith', () {

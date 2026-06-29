@@ -593,6 +593,7 @@ class AppTranslations extends Translations {
       'reschedule_visit_to_prefix': 'Reschedule your visit to',
       'auth_required': 'Authentication Required',
       'login_to_book_visit': 'Please login to book property visits',
+      'login_to_cancel_visit': 'Please login to manage your visits',
       'visit_cancelled': 'Visit Cancelled',
       'your_visit_has_been_cancelled': 'Your visit has been cancelled',
       'visit_rescheduled': 'Visit Rescheduled',
@@ -609,6 +610,8 @@ class AppTranslations extends Translations {
       'select_future_datetime': 'Please select a date and time in the future',
       'time': 'Time',
       'failed_to_load_visits': 'Failed to load visits',
+      'failed_to_load_messages': 'Failed to load messages',
+      'failed_to_delete_conversation': 'Failed to delete conversation',
 
       // Filter widget
       'filter_properties': 'Filter Properties',
@@ -776,6 +779,7 @@ class AppTranslations extends Translations {
       'check_internet_connection': 'Please check your internet connection',
       'virtual_tour_title': '360° Virtual Tour',
       'fullscreen_mode': 'Fullscreen Mode',
+      'tap_back_to_exit_fullscreen': 'Tap back button to exit fullscreen',
       'rotate_device_better_experience': 'Rotate your device for better experience',
       'share_tour': 'Share Tour',
       'tour_link_copied': 'Tour link copied to clipboard',
@@ -969,6 +973,12 @@ class AppTranslations extends Translations {
       'section_54_info':
           'Section 54: Reinvest in residential property within 2 years. Section 54F: Invest in residential property if selling non-residential asset.',
 
+      // Validation messages
+      'please_enter_valid_amounts': 'Please enter valid amounts to calculate',
+      'sale_year_must_be_after_purchase_year': 'Sale year must be the same or after purchase year',
+      'holding_period_approximation_note':
+          'Note: Holding period is approximated using year boundaries only',
+
       // Auth controller messages
       'session_expired_message': 'Your session has expired. Please sign in again.',
       'profile_load_timeout': 'Could not retrieve your profile in time. Please try again.',
@@ -1063,6 +1073,22 @@ class AppTranslations extends Translations {
       'user_data_not_found': 'User data not found',
       'profile_update_success': 'Profile updated successfully',
       'profile_update_failed': 'Failed to update profile',
+      'take_photo': 'Take Photo',
+      'choose_from_gallery': 'Choose from Gallery',
+      'profile_image_selected': 'Profile image selected',
+      'failed_to_pick_image': 'Failed to pick image',
+      'invalid_image_format': 'Invalid image',
+      'unsupported_image_extension': 'Unsupported image format: {ext}',
+      'image_too_large': 'Image too large',
+      'image_size_limit_exceeded': 'Please choose an image under 10 MB',
+      'invalid_video_format': 'Invalid video',
+      'unsupported_video_extension': 'Unsupported video format: {ext}',
+      'video_too_large': 'Video too large',
+      'video_size_limit_exceeded': 'Please choose a video under 100 MB',
+
+      // Policy Page
+      'content_unavailable': 'No content available.',
+      'failed_to_load_content': 'Failed to load content',
 
       // Location Search Controller
       'location_selected_title': 'Location Selected',
@@ -1687,6 +1713,7 @@ class AppTranslations extends Translations {
       'reschedule_visit_to_prefix': 'अपने दौरे को पुनर्निर्धारित करें',
       'auth_required': 'प्रमाणीकरण आवश्यक',
       'login_to_book_visit': 'कृपया संपत्ति का दौरा बुक करने के लिए लॉगिन करें',
+      'login_to_cancel_visit': 'कृपया अपने दौरे प्रबंधित करने के लिए लॉगिन करें',
       'visit_cancelled': 'दौरा रद्द किया गया',
       'your_visit_has_been_cancelled': 'आपका दौरा रद्द कर दिया गया है',
       'visit_rescheduled': 'दौरा पुनर्निर्धारित किया गया',
@@ -1703,6 +1730,8 @@ class AppTranslations extends Translations {
       'select_future_datetime': 'कृपया भविष्य की तारीख और समय चुनें',
       'time': 'समय',
       'failed_to_load_visits': 'दौरे लोड करने में विफल',
+      'failed_to_load_messages': 'संदेश लोड करने में विफल',
+      'failed_to_delete_conversation': 'वार्तालाप हटाने में विफल',
 
       // Profile completion
       'complete': 'पूर्ण करें',
@@ -1890,6 +1919,7 @@ class AppTranslations extends Translations {
       'check_internet_connection': 'कृपया अपना इंटरनेट कनेक्शन जांचें',
       'virtual_tour_title': '360° वर्चुअल टूर',
       'fullscreen_mode': 'पूर्ण-स्क्रीन मोड',
+      'tap_back_to_exit_fullscreen': 'पूर्ण-स्क्रीन से बाहर निकलने के लिए बैक बटन दबाएँ',
       'rotate_device_better_experience': 'बेहतर अनुभव के लिए अपने डिवाइस को घुमाएँ',
       'share_tour': 'टूर साझा करें',
       'tour_link_copied': 'टूर लिंक क्लिपबोर्ड पर कॉपी किया गया',
@@ -2083,6 +2113,12 @@ class AppTranslations extends Translations {
       'section_54_info':
           'धारा 54: 2 साल के भीतर आवासीय संपत्ति में पुनर्निवेश करें। धारा 54F: गैर-आवासीय संपत्ति बेचने पर आवासीय संपत्ति में निवेश करें।',
 
+      // Validation messages
+      'please_enter_valid_amounts': 'कृपया गणना के लिए मान्य राशि दर्ज करें',
+      'sale_year_must_be_after_purchase_year': 'बिक्री वर्ष खरीद वर्ष के बाद या उसी का होना चाहिए',
+      'holding_period_approximation_note':
+          'नोट: धारण अवधि केवल वर्ष सीमाओं का उपयोग करके अनुमानित है',
+
       // Auth controller messages
       'session_expired_message': 'आपका सत्र समाप्त हो गया है। कृपया फिर से साइन इन करें।',
       'profile_load_timeout': 'आपकी प्रोफ़ाइल समय पर प्राप्त नहीं हो सकी। कृपया पुनः प्रयास करें।',
@@ -2178,6 +2214,22 @@ class AppTranslations extends Translations {
       'user_data_not_found': 'उपयोगकर्ता डेटा नहीं मिला',
       'profile_update_success': 'प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई',
       'profile_update_failed': 'प्रोफ़ाइल अपडेट करने में विफल',
+      'take_photo': 'फ़ोटो लें',
+      'choose_from_gallery': 'गैलरी से चुनें',
+      'profile_image_selected': 'प्रोफ़ाइल इमेज चुनी गई',
+      'failed_to_pick_image': 'इमेज चुनने में विफल',
+      'invalid_image_format': 'अमान्य इमेज',
+      'unsupported_image_extension': 'असमर्थित इमेज प्रारूप: {ext}',
+      'image_too_large': 'इमेज बहुत बड़ी है',
+      'image_size_limit_exceeded': 'कृपया 10 MB से छोटी इमेज चुनें',
+      'invalid_video_format': 'अमान्य वीडियो',
+      'unsupported_video_extension': 'असमर्थित वीडियो प्रारूप: {ext}',
+      'video_too_large': 'वीडियो बहुत बड़ा है',
+      'video_size_limit_exceeded': 'कृपया 100 MB से छोटा वीडियो चुनें',
+
+      // Policy Page
+      'content_unavailable': 'कोई सामग्री उपलब्ध नहीं है।',
+      'failed_to_load_content': 'सामग्री लोड करने में विफल',
 
       // Location Search Controller
       'location_selected_title': 'स्थान चुना गया',

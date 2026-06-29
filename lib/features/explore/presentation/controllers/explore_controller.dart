@@ -16,9 +16,10 @@ import 'package:ghar360/core/utils/debug_logger.dart';
 import 'package:ghar360/core/utils/error_mapper.dart';
 import 'package:ghar360/core/widgets/common/property_filter_widget.dart';
 import 'package:ghar360/features/dashboard/presentation/controllers/dashboard_controller.dart';
-import 'package:ghar360/features/swipes/data/swipes_repository.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
+// TODO(explore): loadingMore is referenced in the view for a future "load more
+// properties on scroll" feature but is never set by the controller yet.
 enum ExploreState { initial, loading, loaded, empty, error, loadingMore }
 
 class ExploreController extends GetxController {
@@ -26,7 +27,6 @@ class ExploreController extends GetxController {
   static const String _defaultCenterName = 'Delhi';
   static const double _defaultZoom = 12.0;
 
-  final SwipesRepository _swipesRepository = Get.find<SwipesRepository>();
   final LocationController _locationController = Get.find<LocationController>();
   final PageStateService _pageStateService = Get.find<PageStateService>();
 
@@ -46,8 +46,6 @@ class ExploreController extends GetxController {
 
   // Local liked overrides to reflect immediate UI without mutating model
   final RxMap<int, bool> likedOverrides = <int, bool>{}.obs;
-
-  Timer? _retryTimer;
 
   // Map state
   final Rx<LatLng> currentCenter = _defaultCenter.obs;
@@ -134,7 +132,6 @@ class ExploreController extends GetxController {
   void onClose() {
     _searchDebouncer?.cancel();
     _mapMoveDebouncer?.cancel();
-    _retryTimer?.cancel();
     _locationSubscription?.cancel();
     for (final worker in _workers) {
       worker.dispose();
@@ -362,8 +359,15 @@ class ExploreController extends GetxController {
     });
   }
 
+  bool _isInitializing = false;
+
   // New combined initialization method
   Future<void> _initializeMapAndLoadProperties() async {
+    if (_isInitializing) {
+      DebugLogger.debug('⏳ _initializeMapAndLoadProperties already in progress; skipping');
+      return;
+    }
+    _isInitializing = true;
     try {
       DebugLogger.info('🗺️ Initializing map and loading properties...');
       LatLng initialCenter = _defaultCenter;
@@ -452,6 +456,8 @@ class ExploreController extends GetxController {
       error.value = ErrorMapper.mapApiError(
         'Failed to initialize the map. Please check location services and try again.',
       );
+    } finally {
+      _isInitializing = false;
     }
   }
 
@@ -663,7 +669,7 @@ class ExploreController extends GetxController {
     likedOverrides[property.id] = next;
 
     try {
-      await _swipesRepository.recordSwipe(propertyId: property.id, isLiked: next);
+      await _pageStateService.recordSwipe(propertyId: property.id, isLiked: next);
       DebugLogger.success('✅ Updated like: ${property.title} -> $next');
     } catch (e) {
       DebugLogger.error('❌ Failed to toggle like: $e');
@@ -816,9 +822,8 @@ class ExploreController extends GetxController {
   // Error handling
   void retryLoading() {
     DebugLogger.info('🔄 Manual retry loading requested');
-    _retryTimer?.cancel(); // Cancel any ongoing retry
     error.value = null;
-    state.value = ExploreState.initial; // Reset state to allow retry
+    state.value = ExploreState.loading;
     _pageStateService.loadPageData(PageType.explore, forceRefresh: true);
   }
 
@@ -977,6 +982,8 @@ class ExploreController extends GetxController {
   bool get isLoaded => state.value == ExploreState.loaded;
   bool get hasProperties => properties.isNotEmpty;
   bool get hasSelection => selectedProperty.value != null;
+  // TODO(explore): isLoadingMore always returns false because loadingMore is
+  // never set; remove once infinite-scroll is implemented or wired up.
   bool get isLoadingMore => state.value == ExploreState.loadingMore;
 }
 

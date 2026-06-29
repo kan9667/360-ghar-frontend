@@ -25,6 +25,16 @@ class SplashView extends GetView<SplashController> {
     final topPadding = MediaQuery.of(context).padding.top;
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
+    final pc = controller.pageController;
+    final fade = controller.fadeAnimation;
+    final slide = controller.slideAnimation;
+    if (pc == null || fade == null || slide == null) {
+      return const Scaffold(
+        backgroundColor: AppDesign.overlayDark,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       key: const ValueKey('qa.splash.screen'),
       backgroundColor: AppDesign.overlayDark,
@@ -32,13 +42,13 @@ class SplashView extends GetView<SplashController> {
         children: [
           // Full-bleed paged background (image + gradient stay edge-to-edge).
           PageView.builder(
-            controller: controller.pageController,
+            controller: pc,
             itemCount: slides.length,
             onPageChanged: (index) => controller.currentStep.value = index,
             itemBuilder: (context, index) => _OnboardingSlideCard(
               slide: slides[index],
-              fadeAnimation: controller.fadeAnimation,
-              slideAnimation: controller.slideAnimation,
+              fadeAnimation: fade,
+              slideAnimation: slide,
             ),
           ),
           // Skip button anchored to the top-right of the centered content area,

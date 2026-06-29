@@ -400,6 +400,7 @@ class DiscoverController extends GetxController {
 
   List<PropertyModel> get nextProperties {
     final start = currentIndex.value + 1;
+    if (start >= deck.length) return [];
     final end = (start + 3).clamp(0, deck.length);
     return deck.sublist(start, end);
   }

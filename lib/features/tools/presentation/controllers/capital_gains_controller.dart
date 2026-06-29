@@ -7,9 +7,10 @@ class CapitalGainsController extends GetxController {
   final TextEditingController salePriceController = TextEditingController();
   final TextEditingController improvementCostController = TextEditingController();
 
-  final RxInt purchaseYear = 2020.obs;
-  final RxInt saleYear = 2024.obs;
+  final RxInt purchaseYear = (DateTime.now().year - 2).obs;
+  final RxInt saleYear = DateTime.now().year.obs;
   final RxBool hasCalculated = false.obs;
+  final RxString validationError = ''.obs;
 
   // Results
   final RxBool isLongTerm = false.obs;
@@ -47,7 +48,9 @@ class CapitalGainsController extends GetxController {
     2025: 363, // Using 2024 value as 2025 not yet announced
   };
 
-  List<int> get availableYears => List.generate(25, (i) => 2001 + i);
+  // Span 2001 through the current year so the default saleYear (current year)
+  // always has a matching dropdown item. CII lookups fall back for years > 2025.
+  List<int> get availableYears => List.generate(DateTime.now().year - 2000, (i) => 2001 + i);
 
   void calculate() {
     final purchasePrice = double.tryParse(purchasePriceController.text) ?? 0;
@@ -55,11 +58,21 @@ class CapitalGainsController extends GetxController {
     final improvementCost = double.tryParse(improvementCostController.text) ?? 0;
 
     if (purchasePrice <= 0 || salePrice <= 0) {
+      validationError.value = 'please_enter_valid_amounts'.tr;
       hasCalculated.value = false;
       return;
     }
 
+    if (saleYear.value < purchaseYear.value) {
+      validationError.value = 'sale_year_must_be_after_purchase_year'.tr;
+      hasCalculated.value = false;
+      return;
+    }
+
+    validationError.value = '';
+
     // Check if long-term (held for more than 24 months)
+    // Note: Holding period is an approximation based on year difference only
     final holdingMonths = (saleYear.value - purchaseYear.value) * 12;
     isLongTerm.value = holdingMonths > 24;
 
@@ -104,9 +117,10 @@ class CapitalGainsController extends GetxController {
     purchasePriceController.clear();
     salePriceController.clear();
     improvementCostController.clear();
-    purchaseYear.value = 2020;
-    saleYear.value = 2024;
+    purchaseYear.value = DateTime.now().year - 2;
+    saleYear.value = DateTime.now().year;
     hasCalculated.value = false;
+    validationError.value = '';
     isLongTerm.value = false;
     indexedCost.value = 0;
     capitalGain.value = 0;

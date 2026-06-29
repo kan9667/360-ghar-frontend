@@ -41,49 +41,42 @@ class AssistantRepository {
   /// next page; omit/null on the first page. Returns a [ConversationsPage]
   /// so callers can drive pagination from [nextCursor] and [hasMore].
   Future<ConversationsPage> getConversations({String? cursor, int limit = 50}) async {
-    try {
-      final response = await _apiClient.get(
-        '/agent/conversations',
-        queryParams: <String, dynamic>{
-          'limit': limit.toString(),
-          if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
-        },
-      );
-      final body = response.body;
+    final response = await _apiClient.get(
+      '/agent/conversations',
+      queryParams: <String, dynamic>{
+        'limit': limit.toString(),
+        if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+      },
+    );
+    final body = response.body;
 
-      // Tolerate bare-list responses too (older deployments that pre-date the
-      // cursor envelope): treat a bare list as a single terminal page.
-      if (body is List) {
-        final items = body
-            .map((e) => ConversationModel.fromJson(e as Map<String, dynamic>))
-            .toList();
-        return ConversationsPage(items: items, hasMore: false, nextCursor: null);
-      }
-
-      if (body is Map<String, dynamic>) {
-        final dynamic rawItems = body['items'] ?? body['data'];
-        final items = rawItems is List
-            ? rawItems.whereType<Map<String, dynamic>>().map(ConversationModel.fromJson).toList()
-            : const <ConversationModel>[];
-
-        // Envelope-driven pagination: honour has_more / next_cursor when the
-        // server provides them. Default to a terminal page otherwise so the
-        // caller short-circuits on subsequent [loadMoreConversations] calls.
-        final dynamic rawHasMore = body['has_more'];
-        final dynamic rawNextCursor = body['next_cursor'];
-        final bool hasMore = rawHasMore is bool ? rawHasMore : false;
-        final String? nextCursor = rawNextCursor is String && rawNextCursor.isNotEmpty
-            ? rawNextCursor
-            : null;
-
-        return ConversationsPage(items: items, hasMore: hasMore, nextCursor: nextCursor);
-      }
-
-      return const ConversationsPage(items: <ConversationModel>[], hasMore: false);
-    } catch (e) {
-      DebugLogger.error('Failed to load conversations', e);
-      return const ConversationsPage(items: <ConversationModel>[], hasMore: false);
+    // Tolerate bare-list responses too (older deployments that pre-date the
+    // cursor envelope): treat a bare list as a single terminal page.
+    if (body is List) {
+      final items = body.map((e) => ConversationModel.fromJson(e as Map<String, dynamic>)).toList();
+      return ConversationsPage(items: items, hasMore: false, nextCursor: null);
     }
+
+    if (body is Map<String, dynamic>) {
+      final dynamic rawItems = body['items'] ?? body['data'];
+      final items = rawItems is List
+          ? rawItems.whereType<Map<String, dynamic>>().map(ConversationModel.fromJson).toList()
+          : const <ConversationModel>[];
+
+      // Envelope-driven pagination: honour has_more / next_cursor when the
+      // server provides them. Default to a terminal page otherwise so the
+      // caller short-circuits on subsequent [loadMoreConversations] calls.
+      final dynamic rawHasMore = body['has_more'];
+      final dynamic rawNextCursor = body['next_cursor'];
+      final bool hasMore = rawHasMore is bool ? rawHasMore : false;
+      final String? nextCursor = rawNextCursor is String && rawNextCursor.isNotEmpty
+          ? rawNextCursor
+          : null;
+
+      return ConversationsPage(items: items, hasMore: hasMore, nextCursor: nextCursor);
+    }
+
+    return const ConversationsPage(items: <ConversationModel>[], hasMore: false);
   }
 
   /// Get messages for a conversation.
@@ -125,7 +118,7 @@ class AssistantRepository {
     } catch (e) {
       DebugLogger.error('Failed to fetch widget HTML', e);
     }
-    _widgetHtmlCache[widgetName] = null;
+    // Do not cache failures — allow retry on next call.
     return null;
   }
 

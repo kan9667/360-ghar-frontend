@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
@@ -69,6 +71,8 @@ class _EmbeddedSwipe360TourState extends State<EmbeddedSwipe360Tour> {
           ),
         );
 
+      final sanitizedUrl = htmlEscape.convert(widget.tourUrl);
+
       final htmlContent =
           '''
       <!DOCTYPE html>
@@ -99,7 +103,7 @@ class _EmbeddedSwipe360TourState extends State<EmbeddedSwipe360Tour> {
                 allow="xr-spatial-tracking; gyroscope; accelerometer"
                 allowfullscreen
                 scrolling="no"
-                src="${widget.tourUrl}">
+                src="$sanitizedUrl">
         </iframe>
       </body>
       </html>

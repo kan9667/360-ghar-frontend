@@ -119,12 +119,7 @@ class EditProfileView extends GetView<EditProfileController> with ThemeMixin {
                             icon: Icons.email_outlined,
                             qaKey: 'qa.profile.edit.email_input',
                             keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value != null && value.isNotEmpty && !GetUtils.isEmail(value)) {
-                                return 'valid_email_required'.tr;
-                              }
-                              return null;
-                            },
+                            enabled: false, // Email is read-only; changes require re-verification
                           ),
                           const SizedBox(height: 16),
                           _buildTextField(
@@ -246,6 +241,7 @@ class EditProfileView extends GetView<EditProfileController> with ThemeMixin {
     String? qaKey,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool enabled = true,
   }) {
     return Semantics(
       label: qaKey,
@@ -255,6 +251,7 @@ class EditProfileView extends GetView<EditProfileController> with ThemeMixin {
         controller: controller,
         keyboardType: keyboardType,
         validator: validator,
+        enabled: enabled,
         style: TextStyle(color: AppDesign.textPrimary),
         decoration: InputDecoration(
           labelText: label,

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-
 import 'package:get/get.dart';
-
 import 'package:ghar360/core/data/models/bug_report_model.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/mixins/theme_mixin.dart';
 import 'package:ghar360/core/routes/app_routes.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HelpView extends StatelessWidget with ThemeMixin {
   const HelpView({super.key});
@@ -398,8 +397,17 @@ class HelpView extends StatelessWidget with ThemeMixin {
   //   );
   // }
 
-  void _emailSupport() {
-    AppToast.info('help_email_title'.tr, 'help_email_message'.tr);
+  void _emailSupport() async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: 'support@360ghar.com',
+      query: 'subject=${Uri.encodeComponent('360Ghar App Support')}',
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      AppToast.info('help_email_title'.tr, 'help_email_message'.tr);
+    }
   }
 
   void _openGuide(String guideId) {

@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
 import 'package:ghar360/core/utils/debug_logger.dart';
 import 'package:ghar360/core/utils/webview_helper.dart';
 import 'package:ghar360/core/widgets/common/max_content_width.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class TourView extends StatefulWidget {
@@ -39,7 +42,6 @@ class _TourViewState extends State<TourView> {
       if (window && window.console) {
         window.console.log = function() {};
         window.console.warn = function() {};
-        window.console.error = function() {};
         window.console.info = function() {};
         window.console.debug = function() {};
       }
@@ -55,14 +57,14 @@ class _TourViewState extends State<TourView> {
             setState(() {
               isLoading = true;
             });
-            controller?.runJavaScript(consoleSilencer);
+            if (kReleaseMode) controller?.runJavaScript(consoleSilencer);
           },
           onPageFinished: (String url) {
             if (!mounted) return;
             setState(() {
               isLoading = false;
             });
-            controller?.runJavaScript(consoleSilencer);
+            if (kReleaseMode) controller?.runJavaScript(consoleSilencer);
             controller?.runJavaScript('''
               document.body.style.margin = '0';
               document.body.style.padding = '0';
@@ -86,6 +88,7 @@ class _TourViewState extends State<TourView> {
       );
 
     if (tourUrl.contains('kuula.co')) {
+      final sanitizedUrl = Uri.encodeFull(tourUrl);
       final htmlContent =
           '''
         <!DOCTYPE html>
@@ -97,14 +100,14 @@ class _TourViewState extends State<TourView> {
             iframe { width: 100vw; height: 100vh; border: none; }
           </style>
           <script type="text/javascript">
-            $consoleSilencer
+            ${kReleaseMode ? consoleSilencer : ''}
           </script>
         </head>
         <body>
           <iframe class="ku-embed" frameborder="0"
                   allow="xr-spatial-tracking; gyroscope; accelerometer"
                   allowfullscreen scrolling="no"
-                  src="$tourUrl">
+                  src="$sanitizedUrl">
           </iframe>
         </body>
         </html>
@@ -117,13 +120,8 @@ class _TourViewState extends State<TourView> {
 
   @override
   void dispose() {
-    // Release the WebViewController reference so it can be garbage-collected.
-    // webview_flutter 4.x does not expose a public dispose() on
-    // WebViewController; the underlying platform WebView is torn down when
-    // the WebViewWidget leaves the tree (its StatefulWidget disposes).
-    // Clearing the field avoids retaining a dangling controller across
-    // repeated tour navigations, which previously accumulated WebView
-    // instances in memory.
+    // Restore system UI when leaving the tour view
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     controller = null;
     super.dispose();
   }
@@ -217,13 +215,17 @@ class _TourViewState extends State<TourView> {
           IconButton(
             icon: Icon(Icons.fullscreen, color: AppDesign.appBarIcon),
             onPressed: () {
-              AppToast.info('fullscreen_mode'.tr, 'rotate_device_better_experience'.tr);
+              SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+              AppToast.info('fullscreen_mode'.tr, 'tap_back_to_exit_fullscreen'.tr);
             },
           ),
           IconButton(
             icon: Icon(Icons.share, color: AppDesign.appBarIcon),
             onPressed: () {
-              AppToast.info('share_tour'.tr, 'tour_link_copied'.tr);
+              final url = _tourUrl ?? '';
+              if (url.isNotEmpty) {
+                Share.share(url, subject: 'virtual_tour_title'.tr);
+              }
             },
           ),
         ],

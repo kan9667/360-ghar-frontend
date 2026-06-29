@@ -41,7 +41,7 @@ void main() {
       final model = UserModel.fromJson(json);
 
       expect(model.supabaseUserId, '');
-      expect(model.email, 'unknown@example.com');
+      expect(model.email, '');
       expect(model.isActive, true);
       expect(model.isVerified, false);
       expect(model.fullName, isNull);
@@ -158,6 +158,76 @@ void main() {
 
       final withUpdate = base.copyWith(updatedAt: DateTime(2025, 6, 1));
       expect(withUpdate.lastLogin, DateTime(2025, 6, 1));
+    });
+  });
+
+  group('UserModel email default', () {
+    test('email defaults to empty string when missing from JSON (per annotation)', () {
+      // The @JsonKey(defaultValue: '') annotation makes a missing email decode
+      // to '' (not the old 'unknown@example.com' placeholder).
+      final json = <String, dynamic>{'id': 1, 'created_at': '2025-01-01T00:00:00.000Z'};
+      final model = UserModel.fromJson(json);
+      expect(model.email, '');
+    });
+  });
+
+  group('UserModel profileCompletionPercentage edge cases', () {
+    UserModel make({
+      String email = 'test@example.com',
+      String? fullName,
+      String? phone,
+      String? dateOfBirth,
+      String? profileImageUrl,
+    }) {
+      return UserModel(
+        id: 1,
+        supabaseUserId: 'abc',
+        email: email,
+        fullName: fullName,
+        phone: phone,
+        dateOfBirth: dateOfBirth,
+        profileImageUrl: profileImageUrl,
+        isActive: true,
+        isVerified: false,
+        createdAt: DateTime(2025, 1, 1),
+      );
+    }
+
+    test('returns 0% when all fields are empty', () {
+      expect(make(email: '').profileCompletionPercentage, 0);
+    });
+
+    test('returns 100% when all 5 fields are filled', () {
+      expect(
+        make(
+          fullName: 'Alice',
+          phone: '1234567890',
+          dateOfBirth: '1990-01-01',
+          profileImageUrl: 'https://example.com/photo.jpg',
+        ).profileCompletionPercentage,
+        100,
+      );
+    });
+
+    test('returns correct partial percentages', () {
+      // 1 of 5 (email only) = 20%
+      expect(make().profileCompletionPercentage, 20);
+
+      // 2 of 5 (email + fullName) = 40%
+      expect(make(fullName: 'Alice').profileCompletionPercentage, 40);
+
+      // 3 of 5 (email + fullName + phone) = 60%
+      expect(make(fullName: 'Alice', phone: '123').profileCompletionPercentage, 60);
+
+      // 4 of 5 (email + fullName + phone + dob) = 80%
+      expect(
+        make(
+          fullName: 'Alice',
+          phone: '123',
+          dateOfBirth: '1990-01-01',
+        ).profileCompletionPercentage,
+        80,
+      );
     });
   });
 

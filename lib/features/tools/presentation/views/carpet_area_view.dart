@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:ghar360/core/design/app_design_extensions.dart';
+import 'package:ghar360/core/widgets/common/error_states.dart';
 import 'package:ghar360/features/tools/presentation/controllers/carpet_area_controller.dart';
 
 class CarpetAreaView extends GetView<CarpetAreaController> {
@@ -76,7 +77,7 @@ class CarpetAreaView extends GetView<CarpetAreaController> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: controller.superBuiltUpController,
-                      keyboardType: TextInputType.number,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       style: TextStyle(color: AppDesign.textPrimary),
                       decoration: InputDecoration(
                         hintText: 'enter_area_sqft'.tr,
@@ -156,6 +157,15 @@ class CarpetAreaView extends GetView<CarpetAreaController> {
               ),
             ),
             const SizedBox(height: 20),
+            Obx(() {
+              if (controller.validationError.value.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: ErrorStates.inlineError(message: controller.validationError.value),
+              );
+            }),
             Obx(() {
               if (!controller.hasCalculated.value) {
                 return const SizedBox.shrink();

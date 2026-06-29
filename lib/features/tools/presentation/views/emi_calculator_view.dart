@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/design/app_design_tokens.dart';
+import 'package:ghar360/core/widgets/common/error_states.dart';
 import 'package:ghar360/features/tools/presentation/controllers/emi_calculator_controller.dart';
 
 class EmiCalculatorView extends GetView<EmiCalculatorController> {
@@ -65,6 +66,7 @@ class EmiCalculatorView extends GetView<EmiCalculatorController> {
                           child: _buildTextField(
                             label: 'tenure'.tr,
                             controller: controller.tenureController,
+                            keyboardType: TextInputType.number,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -79,7 +81,7 @@ class EmiCalculatorView extends GetView<EmiCalculatorController> {
                                 ],
                                 selected: {controller.tenureInYears.value},
                                 onSelectionChanged: (value) {
-                                  controller.tenureInYears.value = value.first;
+                                  controller.toggleTenureUnit();
                                 },
                                 style: ButtonStyle(
                                   backgroundColor: WidgetStateProperty.resolveWith((states) {
@@ -113,6 +115,15 @@ class EmiCalculatorView extends GetView<EmiCalculatorController> {
               ),
             ),
             const SizedBox(height: 20),
+            Obx(() {
+              if (controller.validationError.value.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: ErrorStates.inlineError(message: controller.validationError.value),
+              );
+            }),
             Obx(() {
               if (!controller.hasCalculated.value) {
                 return const SizedBox.shrink();
@@ -184,6 +195,7 @@ class EmiCalculatorView extends GetView<EmiCalculatorController> {
     String? prefix,
     String? suffix,
     String? hint,
+    TextInputType? keyboardType,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,7 +211,7 @@ class EmiCalculatorView extends GetView<EmiCalculatorController> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: keyboardType ?? const TextInputType.numberWithOptions(decimal: true),
           style: TextStyle(color: AppDesign.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
@@ -239,8 +251,10 @@ class EmiCalculatorView extends GetView<EmiCalculatorController> {
     final total = principal + interest;
     if (total == 0) return const SizedBox.shrink();
 
-    final principalPercent = (principal / total * 100).toStringAsFixed(0);
-    final interestPercent = (interest / total * 100).toStringAsFixed(0);
+    final principalPercent = (principal / total * 100);
+    final interestPercent = (interest / total * 100);
+    final principalFlex = principalPercent.round().clamp(1, 99);
+    final interestFlex = interestPercent.round().clamp(1, 99);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,13 +273,13 @@ class EmiCalculatorView extends GetView<EmiCalculatorController> {
           child: Row(
             children: [
               Expanded(
-                flex: principal.toInt(),
+                flex: principalFlex,
                 child: Container(
                   height: 24,
                   color: AppDesign.accentGreen,
                   alignment: Alignment.center,
                   child: Text(
-                    '$principalPercent%',
+                    '${principalPercent.toStringAsFixed(0)}%',
                     style: const TextStyle(
                       color: AppDesignTokens.neutralWhite,
                       fontSize: 12,
@@ -275,13 +289,13 @@ class EmiCalculatorView extends GetView<EmiCalculatorController> {
                 ),
               ),
               Expanded(
-                flex: interest.toInt(),
+                flex: interestFlex,
                 child: Container(
                   height: 24,
                   color: AppDesign.accentOrange,
                   alignment: Alignment.center,
                   child: Text(
-                    '$interestPercent%',
+                    '${interestPercent.toStringAsFixed(0)}%',
                     style: const TextStyle(
                       color: AppDesignTokens.neutralWhite,
                       fontSize: 12,

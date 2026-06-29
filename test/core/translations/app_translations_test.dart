@@ -41,4 +41,31 @@ void main() {
       }
     }
   });
+
+  test('new translation keys exist in both en_US and hi_IN', () {
+    final keys = AppTranslations().keys;
+    const newKeys = <String>[
+      'take_photo',
+      'choose_from_gallery',
+      'profile_image_selected',
+      'failed_to_pick_image',
+      'content_unavailable',
+      'failed_to_load_content',
+      'failed_to_load_messages',
+      'failed_to_delete_conversation',
+    ];
+
+    for (final locale in ['en_US', 'hi_IN']) {
+      final localeMap = keys[locale];
+      expect(localeMap, isNotNull, reason: 'Missing locale map for $locale');
+      for (final key in newKeys) {
+        expect(localeMap!.containsKey(key), isTrue, reason: 'Missing new key "$key" in $locale');
+        expect(
+          localeMap[key]!.isNotEmpty,
+          isTrue,
+          reason: 'Key "$key" in $locale should have a non-empty value',
+        );
+      }
+    }
+  });
 }

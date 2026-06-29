@@ -34,12 +34,12 @@ class _PolicyPageViewState extends State<PolicyPageView> {
       final StaticPageModel page = await _staticPageRepository.fetchPublicPage(widget.uniqueName);
 
       setState(() {
-        _markdownContent = page.content.trim().isNotEmpty ? page.content : 'No content available.';
+        _markdownContent = page.content.trim().isNotEmpty ? page.content : 'content_unavailable'.tr;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load content';
+        _error = 'failed_to_load_content'.tr;
         _isLoading = false;
       });
     }

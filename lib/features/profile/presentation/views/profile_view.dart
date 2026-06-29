@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:ghar360/core/data/models/bug_report_model.dart';
+import 'package:ghar360/core/data/models/user_model.dart';
 import 'package:ghar360/core/design/app_design_extensions.dart';
 import 'package:ghar360/core/mixins/theme_mixin.dart';
 import 'package:ghar360/core/routes/app_routes.dart';
@@ -171,7 +172,7 @@ class ProfileView extends GetView<ProfileController> with ThemeMixin {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, dynamic user) {
+  Widget _buildProfileHeader(BuildContext context, UserModel user) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final colorScheme = theme.colorScheme;
@@ -259,12 +260,12 @@ class ProfileView extends GetView<ProfileController> with ThemeMixin {
                 textAlign: TextAlign.center,
               ),
 
-              if (user.email.isNotEmpty || user.phone.isNotEmpty) ...[
+              if (user.email.isNotEmpty || (user.phone?.isNotEmpty ?? false)) ...[
                 const SizedBox(height: 6),
                 Text(
                   [
                     if (user.email.isNotEmpty) user.email,
-                    if (user.phone.isNotEmpty) user.phone,
+                    if (user.phone?.isNotEmpty ?? false) user.phone,
                   ].join('  ·  '),
                   style: TextStyle(
                     fontSize: 13,

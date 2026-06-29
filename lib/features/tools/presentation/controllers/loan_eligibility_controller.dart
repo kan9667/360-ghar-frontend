@@ -12,6 +12,7 @@ class LoanEligibilityController extends GetxController {
   final RxDouble creditScore = 750.0.obs;
   final RxDouble interestRate = 8.5.obs;
   final RxBool hasCalculated = false.obs;
+  final RxString validationError = ''.obs;
 
   // Results
   final RxDouble maxLoanAmount = 0.0.obs;
@@ -24,9 +25,12 @@ class LoanEligibilityController extends GetxController {
     final existingEmi = double.tryParse(existingEmiController.text) ?? 0;
 
     if (income <= 0) {
+      validationError.value = 'please_enter_valid_amounts'.tr;
       hasCalculated.value = false;
       return;
     }
+
+    validationError.value = '';
 
     // FOIR (Fixed Obligation to Income Ratio) based on credit score
     double foirPercentage;
@@ -75,6 +79,7 @@ class LoanEligibilityController extends GetxController {
     creditScore.value = 750.0;
     interestRate.value = 8.5;
     hasCalculated.value = false;
+    validationError.value = '';
     maxLoanAmount.value = 0;
     maxTenure.value = 0;
     eligibleEmi.value = 0;

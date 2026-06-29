@@ -47,8 +47,10 @@ class GetxTestBinding {
   /// immediately rather than producing confusing null-pointer failures deeper in
   /// the test.
   static void init() {
-    Get.testMode = true;
     _hardReset();
+    // Set testMode AFTER _hardReset() because Get.reset() replaces the root
+    // controller (via resetRootNavigator), which resets testMode to false.
+    Get.testMode = true;
   }
 
   /// Fully tears down the GetX container: disposes registered controllers/

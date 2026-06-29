@@ -3,13 +3,15 @@ import 'dart:async';
 import 'package:get/get.dart';
 
 import 'package:ghar360/core/network/sse_client.dart';
+import 'package:ghar360/core/utils/app_toast.dart';
 import 'package:ghar360/core/utils/debug_logger.dart';
 import 'package:ghar360/features/assistant/data/assistant_repository.dart';
 import 'package:ghar360/features/assistant/data/models/chat_message_model.dart';
 import 'package:ghar360/features/assistant/data/models/conversation_model.dart';
 
 class AssistantController extends GetxController {
-  late final AssistantRepository _repository;
+  // Resolved lazily on access so onInit() can never crash on a re-init.
+  AssistantRepository get _repository => Get.find<AssistantRepository>();
 
   final messages = <ChatMessageModel>[].obs;
   final isStreaming = false.obs;
@@ -25,14 +27,15 @@ class AssistantController extends GetxController {
   final RxBool conversationsHasMore = true.obs;
   final Rxn<String> conversationsNextCursor = Rxn<String>();
 
+  /// Reactive flag set when a conversation list load fails.
+  /// The UI can observe this to show an error state / retry affordance.
+  final RxBool conversationsError = false.obs;
+
+  /// Whether a conversation deletion is in progress.
+  final RxBool isDeleting = false.obs;
+
   StreamSubscription<SseEvent>? _streamSubscription;
   int _messageIdCounter = 0;
-
-  @override
-  void onInit() {
-    super.onInit();
-    _repository = Get.find<AssistantRepository>();
-  }
 
   String _nextId() => 'local_${++_messageIdCounter}';
 
@@ -65,6 +68,9 @@ class AssistantController extends GetxController {
 
     isStreaming.value = true;
 
+    // Cancel any previous stream before starting a new one.
+    _streamSubscription?.cancel();
+
     _streamSubscription = _repository
         .streamChat(message: text.trim(), conversationId: conversationId.value)
         .listen(
@@ -81,7 +87,11 @@ class AssistantController extends GetxController {
     switch (event.event) {
       case 'conversation_info':
         final id = event.data['conversation_id'];
-        if (id is int) conversationId.value = id;
+        if (id is int) {
+          conversationId.value = id;
+        } else if (id is String) {
+          conversationId.value = int.tryParse(id);
+        }
         break;
 
       case 'text_chunk':
@@ -167,6 +177,7 @@ class AssistantController extends GetxController {
     if (isLoadingConversations.value || isLoadingMoreConversations.value) return;
 
     isLoadingConversations.value = true;
+    conversationsError.value = false;
     try {
       final page = await _repository.getConversations();
       conversations.assignAll(page.items);
@@ -174,6 +185,7 @@ class AssistantController extends GetxController {
       conversationsHasMore.value = page.hasMore;
     } catch (e) {
       DebugLogger.error('Failed to load conversations page', e);
+      conversationsError.value = true;
     } finally {
       isLoadingConversations.value = false;
     }
@@ -207,6 +219,7 @@ class AssistantController extends GetxController {
       conversationsHasMore.value = page.hasMore;
     } catch (e) {
       DebugLogger.error('Failed to load more conversations', e);
+      conversationsError.value = true;
     } finally {
       isLoadingMoreConversations.value = false;
     }
@@ -215,8 +228,13 @@ class AssistantController extends GetxController {
   Future<void> selectConversation(int id) async {
     conversationId.value = id;
     messages.clear();
-    final msgs = await _repository.getConversationMessages(id);
-    messages.addAll(msgs);
+    try {
+      final msgs = await _repository.getConversationMessages(id);
+      messages.addAll(msgs);
+    } catch (e) {
+      DebugLogger.error('Failed to load conversation messages', e);
+      AppToast.error('error'.tr, 'failed_to_load_messages'.tr);
+    }
   }
 
   void startNewConversation() {
@@ -226,12 +244,22 @@ class AssistantController extends GetxController {
   }
 
   Future<void> deleteConversation(int id) async {
-    final success = await _repository.deleteConversation(id);
-    if (success) {
-      conversations.removeWhere((c) => c.id == id);
-      if (conversationId.value == id) {
-        startNewConversation();
+    isDeleting.value = true;
+    try {
+      final success = await _repository.deleteConversation(id);
+      if (success) {
+        conversations.removeWhere((c) => c.id == id);
+        if (conversationId.value == id) {
+          startNewConversation();
+        }
+      } else {
+        AppToast.error('error'.tr, 'failed_to_delete_conversation'.tr);
       }
+    } catch (e) {
+      DebugLogger.error('Failed to delete conversation', e);
+      AppToast.error('error'.tr, 'failed_to_delete_conversation'.tr);
+    } finally {
+      isDeleting.value = false;
     }
   }
 

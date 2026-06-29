@@ -6,6 +6,7 @@ import 'package:ghar360/core/routes/app_routes.dart';
 import 'package:ghar360/core/utils/app_spacing.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
 import 'package:ghar360/core/utils/responsive.dart';
+import 'package:ghar360/core/widgets/common/error_states.dart';
 import 'package:ghar360/core/widgets/common/max_content_width.dart';
 import 'package:ghar360/core/widgets/common/segmented_control.dart';
 import 'package:ghar360/features/visits/presentation/controllers/visits_controller.dart';
@@ -122,6 +123,9 @@ class VisitsView extends GetView<VisitsController> {
               if (controller.isLoading.value) {
                 key = const ValueKey('loading');
                 child = _buildLoadingState();
+              } else if (controller.error.value != null && controller.visits.isEmpty) {
+                key = const ValueKey('error');
+                child = _buildErrorState(controller);
               } else {
                 key = const ValueKey('content');
                 child = _VisitsContent(controller: controller);
@@ -157,6 +161,13 @@ class VisitsView extends GetView<VisitsController> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(children: List.generate(3, (index) => const VisitCardSkeleton())),
+    );
+  }
+
+  Widget _buildErrorState(VisitsController controller) {
+    return ErrorStates.genericError(
+      error: controller.error.value,
+      onRetry: () => controller.loadVisits(isRefresh: true),
     );
   }
 }
@@ -453,7 +464,7 @@ class _VisitsContentState extends State<_VisitsContent> {
 
       final agent = widget.controller.relationshipManager.value;
       if (agent == null) {
-        return const RelationshipManagerSkeleton();
+        return const SizedBox.shrink();
       }
 
       return AgentCard(
@@ -518,7 +529,9 @@ class _VisitsContentState extends State<_VisitsContent> {
                 ListTile(
                   leading: const Icon(Icons.calendar_today, color: AppDesign.primaryYellow),
                   title: Text('date'.tr),
-                  subtitle: Text('${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
+                  subtitle: Text(
+                    '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}',
+                  ),
                   onTap: isLoading
                       ? null
                       : () async {

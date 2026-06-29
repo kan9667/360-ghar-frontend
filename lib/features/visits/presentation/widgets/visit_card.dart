@@ -25,7 +25,8 @@ class VisitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dt = visit.scheduledDate;
-    final dateText = '${dt.day}/${dt.month}/${dt.year}';
+    final dateText =
+        '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
     final hour = dt.hour;
     final minute = dt.minute;
     final period = hour >= 12 ? 'PM' : 'AM';

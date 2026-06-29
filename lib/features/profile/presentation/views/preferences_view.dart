@@ -281,7 +281,7 @@ class PreferencesView extends GetView<PreferencesController> with ThemeMixin {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      controller.currentThemeName,
+                      controller.currentThemeNameKey.tr,
                       style: const TextStyle(
                         color: AppDesign.primaryYellow,
                         fontWeight: FontWeight.w600,
@@ -306,11 +306,15 @@ class PreferencesView extends GetView<PreferencesController> with ThemeMixin {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildThemeOption('Light', AppThemeMode.light, Icons.light_mode),
+            _buildThemeOption('light_mode'.tr, AppThemeMode.light, Icons.light_mode),
             const SizedBox(height: 8),
-            _buildThemeOption('Dark', AppThemeMode.dark, Icons.dark_mode),
+            _buildThemeOption('dark_mode'.tr, AppThemeMode.dark, Icons.dark_mode),
             const SizedBox(height: 8),
-            _buildThemeOption('System', AppThemeMode.system, Icons.settings_system_daydream),
+            _buildThemeOption(
+              'system_mode'.tr,
+              AppThemeMode.system,
+              Icons.settings_system_daydream,
+            ),
           ],
         ),
         actions: [TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr))],

@@ -92,7 +92,9 @@ class ThemeController extends GetxController with WidgetsBindingObserver {
     _updateThemeBasedOnMode();
     _saveThemeToStorage();
     // Force app update to ensure immediate rebuilds
-    Get.forceAppUpdate();
+    if (!Get.testMode) {
+      Get.forceAppUpdate();
+    }
   }
 
   void setTheme(bool darkMode) {
@@ -100,6 +102,7 @@ class ThemeController extends GetxController with WidgetsBindingObserver {
   }
 
   void _updateAppTheme() {
+    if (Get.testMode) return;
     Get.changeThemeMode(_themeModeMap[_themeMode.value]!);
   }
 

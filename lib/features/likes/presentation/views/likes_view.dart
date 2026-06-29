@@ -259,7 +259,7 @@ class LikesView extends GetView<LikesController> {
       title: isLiked ? 'no_liked_properties'.tr : 'no_passed_properties'.tr,
       message: controller.emptyStateMessage,
       icon: isLiked ? Icons.favorite_border : Icons.not_interested,
-      onAction: () => Get.find<DashboardController>().changeTab(2),
+      onAction: () => Get.find<DashboardController>().changeTab(DashboardController.discoverTab),
       actionText: 'explore_properties'.tr,
     );
   }

@@ -19,6 +19,40 @@ void main() {
       expect(windowSizeClassForWidth(1200), WindowSizeClass.large);
       expect(windowSizeClassForWidth(1920), WindowSizeClass.large);
     });
+
+    test('exact breakpoints classify correctly', () {
+      // kCompactBreakpoint = 600: just below is compact, at is medium
+      expect(windowSizeClassForWidth(kCompactBreakpoint - 0.01), WindowSizeClass.compact);
+      expect(windowSizeClassForWidth(kCompactBreakpoint), WindowSizeClass.medium);
+
+      // kMediumBreakpoint = 840: just below is medium, at is expanded
+      expect(windowSizeClassForWidth(kMediumBreakpoint - 0.01), WindowSizeClass.medium);
+      expect(windowSizeClassForWidth(kMediumBreakpoint), WindowSizeClass.expanded);
+
+      // kExpandedBreakpoint = 1200: just below is expanded, at is large
+      expect(windowSizeClassForWidth(kExpandedBreakpoint - 0.01), WindowSizeClass.expanded);
+      expect(windowSizeClassForWidth(kExpandedBreakpoint), WindowSizeClass.large);
+    });
+
+    test('typical device widths map to correct classes', () {
+      // Phone portrait
+      expect(windowSizeClassForWidth(360), WindowSizeClass.compact);
+      expect(windowSizeClassForWidth(390), WindowSizeClass.compact);
+      expect(windowSizeClassForWidth(414), WindowSizeClass.compact);
+
+      // Phone landscape / small tablet
+      expect(windowSizeClassForWidth(600), WindowSizeClass.medium);
+      expect(windowSizeClassForWidth(768), WindowSizeClass.medium);
+
+      // Tablet portrait
+      expect(windowSizeClassForWidth(840), WindowSizeClass.expanded);
+      expect(windowSizeClassForWidth(1024), WindowSizeClass.expanded);
+
+      // Desktop / tablet landscape
+      expect(windowSizeClassForWidth(1200), WindowSizeClass.large);
+      expect(windowSizeClassForWidth(1920), WindowSizeClass.large);
+      expect(windowSizeClassForWidth(2560), WindowSizeClass.large);
+    });
   });
 
   group('responsiveValueForClass fallback walk', () {

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-
 import 'package:get/get.dart';
-
 import 'package:ghar360/core/controllers/auth_controller.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
+import 'package:ghar360/features/profile/data/profile_repository.dart';
+import 'package:image_picker/image_picker.dart';
 
 class EditProfileController extends GetxController {
   final AuthController _authController = Get.find<AuthController>();
+  final ProfileRepository _profileRepository = Get.find<ProfileRepository>();
 
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
@@ -54,17 +55,49 @@ class EditProfileController extends GetxController {
   }
 
   Future<void> pickProfileImage() async {
-    // In a real app, this would open image picker
-    // For now, just show a placeholder dialog
-    Get.dialog(
-      AlertDialog(
-        title: Text('profile_picture'.tr),
-        content: const Text(
-          'Image picker functionality would be implemented here using image_picker package.',
+    try {
+      final picker = ImagePicker();
+      final source = await Get.bottomSheet<ImageSource>(
+        SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: Text('take_photo'.tr),
+                onTap: () => Get.back(result: ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: Text('choose_from_gallery'.tr),
+                onTap: () => Get.back(result: ImageSource.gallery),
+              ),
+            ],
+          ),
         ),
-        actions: [TextButton(onPressed: () => Get.back(), child: Text('ok'.tr))],
-      ),
-    );
+      );
+
+      if (source == null) return;
+
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (pickedFile == null) return;
+
+      // Upload immediately so the profile persists a real URL, not a local
+      // device file path. The backend returns the updated user.
+      isLoading.value = true;
+      final updatedUser = await _profileRepository.updateProfileImage(pickedFile.path);
+      profileImageUrl.value = updatedUser.profileImage ?? '';
+      _authController.currentUser.value = updatedUser;
+      AppToast.success('success'.tr, 'profile_image_selected'.tr);
+    } catch (e) {
+      AppToast.error('error'.tr, 'failed_to_pick_image'.tr);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<void> selectDateOfBirth(BuildContext context) async {
@@ -95,7 +128,7 @@ class EditProfileController extends GetxController {
   }
 
   String formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   Future<void> saveProfile() async {
@@ -133,10 +166,10 @@ class EditProfileController extends GetxController {
       }
 
       // Update user profile
+      // Note: _authController.updateUserProfile() already shows a success toast
       await _authController.updateUserProfile(profileData);
 
       Get.back();
-      AppToast.success('success'.tr, 'profile_update_success'.tr);
     } catch (e) {
       AppToast.error('error'.tr, 'profile_update_failed'.trParams({'error': e.toString()}));
     } finally {

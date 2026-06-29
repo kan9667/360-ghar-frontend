@@ -295,19 +295,19 @@ class AuthRepository extends GetxService {
     String password, {
     Map<String, dynamic>? data,
   }) {
-    DebugLogger.auth('Attempting to sign up with phone: $phone');
+    DebugLogger.auth('Attempting to sign up with phone: ${IdentifierUtils.mask(phone)}');
     return _supabase.auth.signUp(phone: phone, password: password, data: data);
   }
 
   /// Signs in an existing user with their phone number and password.
   Future<AuthResponse> signInWithPhonePassword(String phone, String password) {
-    DebugLogger.auth('Attempting to sign in with phone: $phone');
+    DebugLogger.auth('Attempting to sign in with phone: ${IdentifierUtils.mask(phone)}');
     return _supabase.auth.signInWithPassword(phone: phone, password: password);
   }
 
   /// Verifies the OTP sent to the user's phone to complete sign-up or sign-in.
   Future<AuthResponse> verifyPhoneOtp({required String phone, required String token}) {
-    DebugLogger.auth('Verifying OTP for phone: $phone');
+    DebugLogger.auth('Verifying OTP for phone: ${IdentifierUtils.mask(phone)}');
     return _supabase.auth.verifyOTP(phone: phone, token: token, type: OtpType.sms);
   }
 
@@ -316,7 +316,7 @@ class AuthRepository extends GetxService {
   /// so a mistyped/unknown number can't silently register. Signup uses
   /// [signUpWithPhonePassword] instead.
   Future<void> sendPhoneOtp(String phone) {
-    DebugLogger.auth('Sending OTP to phone: $phone');
+    DebugLogger.auth('Sending OTP to phone: ${IdentifierUtils.mask(phone)}');
     return _supabase.auth.signInWithOtp(phone: phone, shouldCreateUser: false);
   }
 
@@ -364,13 +364,13 @@ class AuthRepository extends GetxService {
   /// Starts the add-verified-phone flow for an already-authenticated user by
   /// requesting a phone change; Supabase sends an SMS OTP to [phone].
   Future<void> startAddPhone(String phone) async {
-    DebugLogger.auth('Requesting phone change to: $phone');
+    DebugLogger.auth('Requesting phone change to: ${IdentifierUtils.mask(phone)}');
     await _supabase.auth.updateUser(UserAttributes(phone: phone));
   }
 
   /// Completes the add-verified-phone flow by verifying the phoneChange OTP.
   Future<AuthResponse> addAndVerifyPhone({required String phone, required String token}) {
-    DebugLogger.auth('Verifying phoneChange OTP for: $phone');
+    DebugLogger.auth('Verifying phoneChange OTP for: ${IdentifierUtils.mask(phone)}');
     return _supabase.auth.verifyOTP(phone: phone, token: token, type: OtpType.phoneChange);
   }
 

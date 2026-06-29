@@ -18,8 +18,9 @@ class AppToast {
     double margin = 12,
     TextButton? mainButton,
   }) {
-    final context = Get.overlayContext;
-    textColor ??= Theme.of(context ?? Get.context!).colorScheme.onError;
+    final context = Get.overlayContext ?? Get.context;
+    if (context == null) return;
+    textColor ??= Theme.of(context).colorScheme.onError;
 
     Get.snackbar(
       title,

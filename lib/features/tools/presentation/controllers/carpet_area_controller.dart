@@ -6,6 +6,7 @@ class CarpetAreaController extends GetxController {
   final TextEditingController superBuiltUpController = TextEditingController();
   final RxDouble loadingPercentage = 25.0.obs;
   final RxBool hasCalculated = false.obs;
+  final RxString validationError = ''.obs;
 
   // Results
   final RxDouble carpetArea = 0.0.obs;
@@ -16,9 +17,12 @@ class CarpetAreaController extends GetxController {
     final superBuiltUp = double.tryParse(superBuiltUpController.text) ?? 0;
 
     if (superBuiltUp <= 0) {
+      validationError.value = 'please_enter_valid_amounts'.tr;
       hasCalculated.value = false;
       return;
     }
+
+    validationError.value = '';
 
     // Super built-up includes common areas (loading)
     // Built-up = Super built-up - common area loading
@@ -48,6 +52,7 @@ class CarpetAreaController extends GetxController {
     superBuiltUpController.clear();
     loadingPercentage.value = 25.0;
     hasCalculated.value = false;
+    validationError.value = '';
     carpetArea.value = 0;
     builtUpArea.value = 0;
     usablePercentage.value = 0;

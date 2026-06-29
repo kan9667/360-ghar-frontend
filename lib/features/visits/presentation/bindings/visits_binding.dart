@@ -5,6 +5,8 @@ import 'package:ghar360/features/visits/presentation/controllers/visits_controll
 class VisitsBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<VisitsController>(() => VisitsController());
+    if (!Get.isRegistered<VisitsController>()) {
+      Get.lazyPut<VisitsController>(() => VisitsController());
+    }
   }
 }

@@ -9,12 +9,14 @@ import 'package:ghar360/core/services/google_places_service.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
 
 class LocationSearchController extends GetxController {
-  late final LocationController locationController;
-  late final PageStateService pageStateService;
+  // Resolved lazily on access so onInit() can never crash on a re-init.
+  LocationController get locationController => Get.find<LocationController>();
+  PageStateService get pageStateService => Get.find<PageStateService>();
 
   final TextEditingController searchController = TextEditingController();
   final RxString searchQuery = ''.obs;
   final RxBool isLoading = false.obs;
+  final RxString searchError = ''.obs;
 
   // Debounce timer
   Worker? _debounceWorker;
@@ -22,11 +24,9 @@ class LocationSearchController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    locationController = Get.find<LocationController>();
-    pageStateService = Get.find<PageStateService>();
 
-    // Setup debounce for search
-    _debounceWorker = debounce(
+    // Setup debounce for search (guarded against re-entrant onInit)
+    _debounceWorker ??= debounce(
       searchQuery,
       (_) => _performSearch(),
       time: const Duration(milliseconds: 500),
@@ -40,19 +40,27 @@ class LocationSearchController extends GetxController {
   Future<void> _performSearch() async {
     if (searchQuery.value.trim().isEmpty) {
       locationController.clearPlaceSuggestions();
+      searchError.value = '';
       return;
     }
 
-    await locationController.getPlaceSuggestions(searchQuery.value);
+    try {
+      searchError.value = '';
+      await locationController.getPlaceSuggestions(searchQuery.value);
+    } catch (_) {
+      searchError.value = 'search_error'.tr;
+    }
   }
 
   void clearSearch() {
     searchController.clear();
     searchQuery.value = '';
+    searchError.value = '';
     locationController.clearPlaceSuggestions();
   }
 
   Future<void> selectPlace(PlaceSuggestion suggestion) async {
+    if (isLoading.value) return;
     isLoading.value = true;
 
     try {
@@ -74,12 +82,15 @@ class LocationSearchController extends GetxController {
       } else {
         AppToast.error('error'.tr, 'location_details_failed'.tr);
       }
+    } catch (e) {
+      AppToast.error('error'.tr, 'location_details_failed'.tr);
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> useCurrentLocation() async {
+    if (isLoading.value) return;
     isLoading.value = true;
 
     try {

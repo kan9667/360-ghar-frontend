@@ -30,7 +30,7 @@ class ToolCard extends StatelessWidget {
     return AnimatedTapWrapper(
       onTap: onTap,
       child: Semantics(
-        label: qaKey,
+        label: title,
         identifier: qaKey,
         hint: description,
         child: AspectRatio(

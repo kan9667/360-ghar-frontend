@@ -35,14 +35,14 @@ void showBookVisitDialog(
                 leading: const Icon(Icons.calendar_today, color: AppDesign.primaryYellow),
                 title: Text('date'.tr, style: TextStyle(color: AppDesign.textPrimary)),
                 subtitle: Text(
-                  '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                  '${selectedDate.day.toString().padLeft(2, '0')}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.year}',
                   style: TextStyle(color: AppDesign.textSecondary),
                 ),
                 onTap: () async {
                   final DateTime? picked = await showDatePicker(
                     context: context,
                     initialDate: selectedDate,
-                    firstDate: DateTime.now(),
+                    firstDate: DateTime.now().add(const Duration(days: 1)),
                     lastDate: DateTime.now().add(const Duration(days: 30)),
                   );
                   if (picked != null) {
@@ -75,30 +75,44 @@ void showBookVisitDialog(
           onPressed: () => Get.back(),
           child: Text('cancel'.tr, style: TextStyle(color: AppDesign.textSecondary)),
         ),
-        ElevatedButton(
-          onPressed: () async {
-            if (visitsController.isBookingVisit.value) return;
+        Obx(
+          () => ElevatedButton(
+            onPressed: visitsController.isBookingVisit.value
+                ? null
+                : () async {
+                    final visitDateTime = DateTime(
+                      selectedDate.year,
+                      selectedDate.month,
+                      selectedDate.day,
+                      defaultHour,
+                      defaultMinute,
+                    );
 
-            final visitDateTime = DateTime(
-              selectedDate.year,
-              selectedDate.month,
-              selectedDate.day,
-              defaultHour,
-              defaultMinute,
-            );
+                    final notes = notesController.text.trim().isEmpty
+                        ? null
+                        : notesController.text.trim();
 
-            final notes = notesController.text.trim().isEmpty ? null : notesController.text.trim();
-
-            final didBook = await visitsController.bookVisit(property, visitDateTime, notes: notes);
-            if (didBook && (Get.isDialogOpen ?? false)) {
-              Get.back();
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppDesign.primaryYellow,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    final didBook = await visitsController.bookVisit(
+                      property,
+                      visitDateTime,
+                      notes: notes,
+                    );
+                    if (didBook && (Get.isDialogOpen ?? false)) {
+                      Get.back();
+                    }
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppDesign.primaryYellow,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            ),
+            child: visitsController.isBookingVisit.value
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : Text('schedule_visit'.tr),
           ),
-          child: Text('schedule_visit'.tr),
         ),
       ],
     ),

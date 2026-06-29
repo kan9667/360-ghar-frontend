@@ -6,18 +6,19 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'package:ghar360/core/controllers/auth_controller.dart';
+import 'package:ghar360/core/data/models/auth_status.dart';
 import 'package:ghar360/core/routes/app_routes.dart';
 
 class SplashController extends GetxController with GetTickerProviderStateMixin {
   // The splash controller is now only responsible for splash screen animations,
   // not navigation. All navigation logic is handled by the Root widget.
 
-  late PageController pageController;
-  late AnimationController animationController;
-  late Animation<double> fadeAnimation;
-  late Animation<Offset> slideAnimation;
-  late Animation<double> scaleAnimation;
-  late Animation<double> rotationAnimation;
+  PageController? pageController;
+  AnimationController? animationController;
+  Animation<double>? fadeAnimation;
+  Animation<Offset>? slideAnimation;
+  Animation<double>? scaleAnimation;
+  Animation<double>? rotationAnimation;
 
   final RxInt currentStep = 0.obs;
   final GetStorage _storage = GetStorage();
@@ -30,38 +31,36 @@ class SplashController extends GetxController with GetTickerProviderStateMixin {
   }
 
   void _initializeAnimations() {
-    animationController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    );
+    final ac = AnimationController(duration: const Duration(milliseconds: 1000), vsync: this);
+    animationController = ac;
 
     fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(parent: animationController, curve: Curves.easeInOut));
+    ).animate(CurvedAnimation(parent: ac, curve: Curves.easeInOut));
 
     slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: animationController, curve: Curves.easeOutCubic));
+    ).animate(CurvedAnimation(parent: ac, curve: Curves.easeOutCubic));
 
     scaleAnimation = Tween<double>(
       begin: 0.8,
       end: 1.0,
-    ).animate(CurvedAnimation(parent: animationController, curve: Curves.easeOutBack));
+    ).animate(CurvedAnimation(parent: ac, curve: Curves.easeOutBack));
 
     rotationAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(parent: animationController, curve: Curves.easeInOut));
+    ).animate(CurvedAnimation(parent: ac, curve: Curves.easeInOut));
 
-    animationController.forward();
+    ac.forward();
   }
 
   void nextStep() {
     if (currentStep.value < 2) {
       currentStep.value++;
-      pageController.animateToPage(
+      pageController?.animateToPage(
         currentStep.value,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -74,7 +73,7 @@ class SplashController extends GetxController with GetTickerProviderStateMixin {
   void previousStep() {
     if (currentStep.value > 0) {
       currentStep.value--;
-      pageController.animateToPage(
+      pageController?.animateToPage(
         currentStep.value,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -99,10 +98,21 @@ class SplashController extends GetxController with GetTickerProviderStateMixin {
     // status so AuthNavigationService routes the user to the right screen.
     try {
       final auth = Get.find<AuthController>();
-      // Re-fire the navigation worker for the current status. This is safe
-      // because AuthNavigationService's _handleAuthNavigation no-ops when
-      // already on the target route.
-      auth.authStatus.refresh();
+      if (auth.authStatus.value == AuthStatus.initial) {
+        // Auth hasn't resolved yet; wait for it to settle, then navigate.
+        Worker? worker;
+        worker = ever(auth.authStatus, (AuthStatus status) {
+          if (status != AuthStatus.initial) {
+            worker?.dispose();
+            auth.authStatus.refresh();
+          }
+        });
+      } else {
+        // Re-fire the navigation worker for the current status. This is safe
+        // because AuthNavigationService's _handleAuthNavigation no-ops when
+        // already on the target route.
+        auth.authStatus.refresh();
+      }
     } catch (_) {
       // If AuthController isn't registered, fall back to phone entry.
       Get.offAllNamed(AppRoutes.phoneEntry);
@@ -111,8 +121,8 @@ class SplashController extends GetxController with GetTickerProviderStateMixin {
 
   @override
   void onClose() {
-    animationController.dispose();
-    pageController.dispose();
+    animationController?.dispose();
+    pageController?.dispose();
     super.onClose();
   }
 }

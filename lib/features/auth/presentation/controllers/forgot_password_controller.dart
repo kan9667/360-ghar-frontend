@@ -57,7 +57,7 @@ class ForgotPasswordController extends GetxController with OtpResendTimer {
 
   // Step 1: Send OTP for password reset
   Future<void> sendResetOtp() async {
-    if (!formKey.currentState!.validate()) return;
+    if (!(formKey.currentState?.validate() ?? false)) return;
 
     isLoading.value = true;
     errorMessage.value = '';
@@ -149,7 +149,9 @@ class ForgotPasswordController extends GetxController with OtpResendTimer {
       AppToast.success('success'.tr, 'password_updated_successfully'.tr);
 
       // Navigate to login screen
-      Get.offAllNamed(AppRoutes.login);
+      final id = IdentifierUtils.normalize(identifierController.text.trim());
+      final channel = isEmail ? 'email' : 'phone';
+      Get.offAllNamed(AppRoutes.login, arguments: {'identifier': id, 'channel': channel});
 
       DebugLogger.success('Password updated successfully');
     } catch (e) {

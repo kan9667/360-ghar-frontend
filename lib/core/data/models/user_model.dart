@@ -7,7 +7,7 @@ class UserModel {
   final int id;
   @JsonKey(name: 'supabase_user_id', defaultValue: '')
   final String supabaseUserId;
-  @JsonKey(defaultValue: 'unknown@example.com')
+  @JsonKey(defaultValue: '')
   final String email;
   @JsonKey(name: 'full_name')
   final String? fullName;

@@ -87,12 +87,13 @@ class PropertiesRepository extends GetxService {
         } catch (e) {
           // Fallback: fetch individually if batch endpoint is unsupported
           DebugLogger.warning('Batch fetch failed, falling back to individual: $e');
-          final futures = batch.map((id) => getPropertyDetail(id));
-          try {
-            final individualResults = await Future.wait(futures);
-            allProperties.addAll(individualResults);
-          } catch (e2) {
-            DebugLogger.warning('Some properties failed to load: $e2');
+          for (final id in batch) {
+            try {
+              final property = await getPropertyDetail(id);
+              allProperties.add(property);
+            } catch (e2) {
+              DebugLogger.warning('Failed to load property $id: $e2');
+            }
           }
         }
       }

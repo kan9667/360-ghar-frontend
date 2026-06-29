@@ -4,11 +4,13 @@ import 'package:get_storage/get_storage.dart';
 import 'package:ghar360/core/controllers/localization_controller.dart';
 import 'package:ghar360/core/controllers/theme_controller.dart';
 import 'package:ghar360/core/utils/app_toast.dart';
+import 'package:ghar360/features/profile/data/profile_repository.dart';
 
 class PreferencesController extends GetxController {
   final GetStorage _storage = GetStorage();
-  late final ThemeController _themeController;
-  late final LocalizationController _localizationController;
+  // Resolved lazily on access so onInit() can never crash on a re-init.
+  ThemeController get _themeController => Get.find<ThemeController>();
+  LocalizationController get _localizationController => Get.find<LocalizationController>();
 
   final RxBool pushNotifications = true.obs;
   final RxBool emailNotifications = true.obs;
@@ -19,8 +21,6 @@ class PreferencesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _themeController = Get.find<ThemeController>();
-    _localizationController = Get.find<LocalizationController>();
     _loadPreferences();
   }
 
@@ -34,6 +34,8 @@ class PreferencesController extends GetxController {
   void updateTheme(AppThemeMode mode) {
     _themeController.setThemeMode(mode);
     themeMode.value = mode;
+    // Persist immediately so the choice survives without tapping Save
+    _storage.write('themeMode', mode.index);
   }
 
   void updateThemeFromBoolean(bool isDark) {
@@ -48,13 +50,25 @@ class PreferencesController extends GetxController {
     return _localizationController.getCurrentLanguageName();
   }
 
-  void savePreferences() {
+  void savePreferences() async {
     try {
       _storage.write('pushNotifications', pushNotifications.value);
       _storage.write('emailNotifications', emailNotifications.value);
       _storage.write('similarProperties', similarProperties.value);
 
       _themeController.setThemeMode(themeMode.value);
+
+      // Sync notification preferences to backend (fire-and-forget)
+      try {
+        final profileRepository = Get.find<ProfileRepository>();
+        await profileRepository.updateUserPreferences({
+          'push_notifications': pushNotifications.value,
+          'email_notifications': emailNotifications.value,
+          'similar_properties': similarProperties.value,
+        });
+      } catch (_) {
+        // Backend sync failure is non-critical; local save succeeded above
+      }
 
       AppToast.success('success'.tr, 'preferences_saved'.tr);
     } catch (e) {

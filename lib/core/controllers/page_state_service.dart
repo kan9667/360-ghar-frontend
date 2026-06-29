@@ -520,23 +520,20 @@ class PageStateService extends GetxController {
   // ──────────────────────────────────────────────────────────────────
 
   Future<void> recordSwipe({required int propertyId, required bool isLiked}) async {
-    try {
-      // Maintain likes list optimistically
-      if (isLiked) {
-        final prop = _findPropertyInAnyList(propertyId);
-        if (prop != null) addPropertyToLikes(prop);
-      } else {
-        removePropertyFromLikes(propertyId);
-      }
-
-      // Also remove from discover deck optimistically
-      removePropertyFromDiscover(propertyId);
-
-      // Background network sync
-      unawaited(_swipesRepository.recordSwipe(propertyId: propertyId, isLiked: isLiked));
-    } catch (e) {
-      DebugLogger.error('Failed to record swipe: $e');
+    // Maintain likes list optimistically
+    if (isLiked) {
+      final prop = _findPropertyInAnyList(propertyId);
+      if (prop != null) addPropertyToLikes(prop);
+    } else {
+      removePropertyFromLikes(propertyId);
     }
+
+    // Also remove from discover deck optimistically
+    removePropertyFromDiscover(propertyId);
+
+    // Network sync — await so failures propagate to callers, which revert the
+    // optimistic mutation and/or surface a toast. Callers all handle errors.
+    await _swipesRepository.recordSwipe(propertyId: propertyId, isLiked: isLiked);
   }
 
   PropertyModel? _findPropertyInAnyList(int propertyId) {
@@ -575,22 +572,19 @@ class PageStateService extends GetxController {
   /// reverses the likes list mutation from the original swipe and fires the
   /// background network sync with the opposite action.
   Future<void> undoSwipe({required int propertyId, required bool originalIsLiked}) async {
-    try {
-      // Reverse ONLY the likes list mutation that the original swipe made:
-      // - Original LIKE added the property to likes → undo removes it.
-      // - Original PASS did not touch likes (the property was in discover,
-      //   not likes) → undo leaves likes unchanged. We do NOT add to likes
-      //   because the user's intent is to re-swipe, not auto-like.
-      if (originalIsLiked) {
-        removePropertyFromLikes(propertyId);
-      }
-
-      // Background network sync with the REVERSED action. Without a delete-
-      // swipe API, recording the opposite is the best reversal we can do.
-      unawaited(_swipesRepository.recordSwipe(propertyId: propertyId, isLiked: !originalIsLiked));
-    } catch (e) {
-      DebugLogger.error('Failed to undo swipe: $e');
+    // Reverse ONLY the likes list mutation that the original swipe made:
+    // - Original LIKE added the property to likes → undo removes it.
+    // - Original PASS did not touch likes (the property was in discover,
+    //   not likes) → undo leaves likes unchanged. We do NOT add to likes
+    //   because the user's intent is to re-swipe, not auto-like.
+    if (originalIsLiked) {
+      removePropertyFromLikes(propertyId);
     }
+
+    // Network sync with the REVERSED action. Without a delete-swipe API,
+    // recording the opposite is the best reversal we can do. Await so failures
+    // propagate to the caller (which logs via catchError).
+    await _swipesRepository.recordSwipe(propertyId: propertyId, isLiked: !originalIsLiked);
   }
 
   void removePropertyFromLikes(int propertyId) {

@@ -45,18 +45,15 @@ class ProfileCompletionController extends GetxController with OtpResendTimer {
 
   DateTime? selectedDateOfBirth;
 
-  late final AuthController authController;
-  late final AuthRepository _authRepository;
-  PageStateService? pageStateService;
+  // Resolved lazily on access so onInit() can never crash on a re-init.
+  AuthController get authController => Get.find<AuthController>();
+  AuthRepository get _authRepository => Get.find<AuthRepository>();
+  PageStateService? get pageStateService =>
+      Get.isRegistered<PageStateService>() ? Get.find<PageStateService>() : null;
 
   @override
   void onInit() {
     super.onInit();
-    authController = Get.find<AuthController>();
-    _authRepository = Get.find<AuthRepository>();
-    if (Get.isRegistered<PageStateService>()) {
-      pageStateService = Get.find<PageStateService>();
-    }
     emailController.text = authController.userEmail ?? '';
     _evaluateAddPhone();
   }
